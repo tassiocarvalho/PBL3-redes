@@ -7,12 +7,13 @@ data_users = [
     {"host": '192.168.1.5', "port": 7666, "nome": "pangi"}
 ]
 
-def send_message(host, port, message):
+def send_message(host, port, message, sender_name):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         for user in data_users:
             if (user["host"], user["port"]) != (host, port):
-                s.sendto(message.encode(), (user["host"], user["port"]))
+                message_with_sender = f"{sender_name}: {message}"
+                s.sendto(message_with_sender.encode(), (user["host"], user["port"]))
         s.close()
     except Exception as e:
         print("Erro ao enviar mensagem:", e)
@@ -25,8 +26,7 @@ def receive_message(port, buffer_size=1024):
         while True:
             data, addr = s.recvfrom(buffer_size)
             received_message = data.decode()
-            sender = next((user["nome"] for user in data_users if user["port"] == port), "Desconhecido")
-            print(f"{sender}: {received_message}")
+            print(received_message)
             time.sleep(0.5)  # Ajustado para 0.1 segundo
     except Exception as e:
         print("Erro ao receber mensagem:", e)
@@ -40,4 +40,4 @@ if __name__ == "__main__":
     while True:
         message = input("Digite uma mensagem para enviar para o grupo: ")
         for user in data_users:
-            send_message(user["host"], user["port"], message)
+            send_message(user["host"], user["port"], message, user["nome"])
