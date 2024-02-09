@@ -7,7 +7,7 @@ data_users = [
     {"host": '192.168.1.14', "port": 7626, "nome": "Gabriel"},
     {"host": '192.168.1.5', "port": 7666, "nome": "pangi"}
 ]
-
+#
 def send_message(host, port, message, sender_name):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
