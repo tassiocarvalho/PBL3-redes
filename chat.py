@@ -3,9 +3,10 @@ import threading
 import os
 import platform
 import json
+import time
 
 # Lista de IPs dos usuários
-usuarios = ["192.168.1.5", "192.168.1.6", "192.168.1.14", "192.168.1.7"]
+usuarios = ["192.168.1.5", "192.168.1.14"]
 
 # Porta para comunicação
 porta = 5111
@@ -19,6 +20,9 @@ def clear_screen():
 
 # Lista para armazenar as mensagens recebidas
 mensagens_recebidas = []
+
+# Lista para armazenar as mensagens enviadas e não confirmadas
+mensagens_enviadas = []
 
 # Função para receber mensagens
 def receber_mensagens():
@@ -50,15 +54,34 @@ def enviar_mensagens():
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     while True:
-        mensagem = input()
+        mensagem = input("Digite a mensagem a ser enviada: ")
+        # Gerar um identificador único para a mensagem
+        id_mensagem = time.time()
         # Codificar a mensagem para JSON
-        mensagem_json = json.dumps({'mensagem': mensagem})
+        mensagem_json = json.dumps({'id': id_mensagem, 'mensagem': mensagem})
+        # Adicionar a mensagem à lista de mensagens enviadas
+        mensagens_enviadas.append((mensagem_json, time.time()))
         # Enviar a mensagem para o próximo usuário na lista de usuários
         for usuario in usuarios:
             try:
                 sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
+        
+        # Aguardar um curto período antes de verificar os ACKs
+        time.sleep(1)
+        
+        # Verificar ACKs para mensagens enviadas
+        for index, (mensagem, tempo_envio) in enumerate(mensagens_enviadas):
+            if time.time() - tempo_envio >= 5:  # Se passaram 5 segundos desde o envio
+                print(f"Reenviando mensagem: {mensagem}")
+                for usuario in usuarios:
+                    try:
+                        sock_envio.sendto(mensagem.encode('utf-8'), (usuario, porta))
+                    except Exception as e:
+                        print(f"Erro ao reenviar mensagem para {usuario}: {e}")
+                # Atualizar o tempo de envio da mensagem
+                mensagens_enviadas[index] = (mensagem, time.time())
 
 # Inicializar a thread para enviar mensagens
 thread_envio = threading.Thread(target=enviar_mensagens)
