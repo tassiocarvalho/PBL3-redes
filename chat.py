@@ -4,22 +4,24 @@ import threading
 import time
 
 data_users = [
-    {"host": '192.168.1.14', "port": 7626, "nome": "Gabriel"},
-    {"host": '192.168.1.5', "port": 7666, "nome": "pangi"}
+    {"host": '192.168.1.14', "port": 7626},
+    {"host": '192.168.1.5', "port": 7666},
+    {"host": '192.168.1.12', "port": 7662}
 ]
-#
-def send_message(host, port, message, sender_name):
+
+# Variáveis globais para manter a ordem das mensagens
+message_queue = []  # Fila de mensagens a serem enviadas
+message_lock = threading.Lock()  # Lock para garantir a sincronização na manipulação da fila
+
+def send_message(host, port, message):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        for user in data_users:
-            if (user["host"], user["port"]) != (host, port):  
-                message_with_sender = f"{sender_name}: {message}"
-                s.sendto(message_with_sender.encode(), (user["host"], user["port"]))
+        s.sendto(message.encode(), (host, port))
         s.close()
     except Exception as e:
         print("Erro ao enviar mensagem:", e)
 
-def receive_message(port, buffer_size=1024, chat_history=None):
+def receive_message(port, buffer_size=1024):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind(('', port))
@@ -27,10 +29,10 @@ def receive_message(port, buffer_size=1024, chat_history=None):
         while True:
             data, addr = s.recvfrom(buffer_size)
             received_message = data.decode()
-            sender = next((user["nome"] for user in data_users if user["port"] == port), "Desconhecido")
-            print(f"{sender}: {received_message}")
-            chat_history.append(f"{sender}: {received_message}")  # Adiciona a mensagem ao histórico
-            time.sleep(0.5)  
+            print(received_message)
+            with message_lock:
+                message_queue.append(received_message)
+            time.sleep(0.5)
     except Exception as e:
         print("Erro ao receber mensagem:", e)
     finally:
@@ -39,20 +41,21 @@ def receive_message(port, buffer_size=1024, chat_history=None):
 def clear_terminal():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def display_chat_history(chat_history):
+def display_chat_history():
     clear_terminal()
-    for message in chat_history:
-        print(message)
+    with message_lock:
+        for message in message_queue:
+            print(message)
 
 if __name__ == "__main__":
-    chat_history = []
-
     for user in data_users:
-        threading.Thread(target=receive_message, args=(user["port"],), kwargs={"chat_history": chat_history}).start()
+        threading.Thread(target=receive_message, args=(user["port"],)).start()
 
     while True:
         message = input("Digite uma mensagem para enviar para o grupo: ")
-        display_chat_history(chat_history)
-        for user in data_users:
-            send_message(user["host"], user["port"], message, user["nome"])
-        chat_history.append(f"Você: {message}")
+        display_chat_history()
+        with message_lock:
+            message_queue.append(f"Você: {message}")
+            for i, user in enumerate(data_users):
+                next_user = data_users[(i + 1) % len(data_users)]  # Próximo usuário no anel
+                send_message(next_user["host"], next_user["port"], message)
