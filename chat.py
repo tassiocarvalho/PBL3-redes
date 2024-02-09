@@ -2,6 +2,7 @@ import socket
 import threading
 import os
 import platform
+import json
 
 # Lista de IPs dos usuários
 usuarios = ["192.168.1.5", "192.168.1.6", "192.168.1.14", "192.168.1.7"]
@@ -27,8 +28,10 @@ def receber_mensagens():
 
     while True:
         mensagem, endereco = sock_recebimento.recvfrom(1024)
+        # Decodificar a mensagem JSON
+        mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
         # Adicionar mensagem recebida à lista
-        mensagens_recebidas.append((endereco, mensagem.decode('utf-8')))
+        mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
         # Limpar a tela e exibir as mensagens recebidas
         clear_screen()
         print("Mensagens Recebidas:")
@@ -48,10 +51,12 @@ def enviar_mensagens():
 
     while True:
         mensagem = input()
-        # Enviar a mensagem para o próximo usuário na topologia de anel
+        # Codificar a mensagem para JSON
+        mensagem_json = json.dumps({'mensagem': mensagem})
+        # Enviar a mensagem para o próximo usuário na lista de usuários
         for usuario in usuarios:
             try:
-                sock_envio.sendto(mensagem.encode('utf-8'), (usuario, porta))
+                sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
