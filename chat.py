@@ -19,7 +19,7 @@ def send_message(host, port, message, sender_name):
     except Exception as e:
         print("Erro ao enviar mensagem:", e)
 
-def receive_message(port, buffer_size=1024):
+def receive_message(port, buffer_size=1024, chat_history=None):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind(('', port))
@@ -29,6 +29,7 @@ def receive_message(port, buffer_size=1024):
             received_message = data.decode()
             sender = next((user["nome"] for user in data_users if user["port"] == port), "Desconhecido")
             print(f"{sender}: {received_message}")
+            chat_history.append(f"{sender}: {received_message}")  # Adiciona a mensagem ao histórico
             time.sleep(0.5)  
     except Exception as e:
         print("Erro ao receber mensagem:", e)
@@ -47,7 +48,7 @@ if __name__ == "__main__":
     chat_history = []
 
     for user in data_users:
-        threading.Thread(target=receive_message, args=(user["port"],)).start()
+        threading.Thread(target=receive_message, args=(user["port"],), kwargs={"chat_history": chat_history}).start()
 
     while True:
         message = input("Digite uma mensagem para enviar para o grupo: ")
