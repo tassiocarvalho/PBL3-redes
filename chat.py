@@ -1,73 +1,46 @@
-import os
 import socket
 import threading
-import time
-import queue
 
-data_users = [
-    {"host": '192.168.1.14', "port": 7626},
-    {"host": '192.168.1.5', "port": 7666},
-    {"host": '192.168.1.12', "port": 7662}
-]
+# Lista de IPs dos usuários
+usuarios = ["192.168.1.5", "192.168.1.6", "192.168.1.14", "192.168.1.7"]
 
-# Lista para armazenar as mensagens recebidas
-chat_history = []
+# Porta para comunicação
+porta = 5111
 
-# Número de mensagens no histórico no momento da última atualização
-last_history_length = 0
-
-# Fila para manter as mensagens a serem enviadas
-message_queue = queue.Queue()
-
-def send_message(host, port, message):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.sendto(message.encode(), (host, port))
-        s.close()
-    except Exception as e:
-        print(f"Erro ao enviar mensagem para {host}:{port}: {e}")
-
-def send_message_to_all_except_self(current_host, current_port, message):
-    for user in data_users:
-        if user["host"] != current_host or user["port"] != current_port:
-            send_message(user["host"], user["port"], message)
-
-def receive_message(port, buffer_size=1024):
-    global last_history_length
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.bind(('', port))
-        while True:
-            data, addr = s.recvfrom(buffer_size)
-            received_message = data.decode()
-            print(received_message)
-            chat_history.append(received_message)  # Adiciona a mensagem recebida ao histórico de chat
-            last_history_length = len(chat_history)  # Atualiza o número de mensagens no histórico
-    except Exception as e:
-        print("Erro ao receber mensagem:", e)
-    finally:
-        s.close()
-
-def clear_terminal():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def display_chat_history():
-    clear_terminal()
-    for message in chat_history:
-        print(message)
-
-def update_chat_history():
-    while True:
-        time.sleep(0.1)  # Atualiza a cada 0.1 segundos
-        display_chat_history()
-
-if __name__ == "__main__":
-    for user in data_users:
-        threading.Thread(target=receive_message, args=(user["port"],)).start()
-
-    threading.Thread(target=update_chat_history).start()
+# Função para receber mensagens
+def receber_mensagens():
+    # Socket UDP para recebimento de mensagens
+    sock_recebimento = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock_recebimento.bind(('0.0.0.0', porta))
 
     while True:
-        message = input("Digite uma mensagem para enviar para o grupo: ")
-        message_queue.put(f"Você: {message}")
-        threading.Thread(target=send_message_to_all_except_self, args=(socket.gethostbyname(socket.gethostname()), data_users[0]["port"], f"Você: {message}")).start()
+        mensagem, endereco = sock_recebimento.recvfrom(1024)
+        print(f"Mensagem recebida de {endereco}: {mensagem.decode('utf-8')}")
+
+# Inicializar a thread para receber mensagens
+thread_recebimento = threading.Thread(target=receber_mensagens)
+thread_recebimento.daemon = True
+thread_recebimento.start()
+
+# Função para enviar mensagens
+def enviar_mensagens():
+    # Socket UDP para envio de mensagens
+    sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    while True:
+        mensagem = input("Digite a mensagem a ser enviada: ")
+        # Enviar a mensagem para o próximo usuário na topologia de anel
+        for usuario in usuarios:
+            try:
+                sock_envio.sendto(mensagem.encode('utf-8'), (usuario, porta))
+            except Exception as e:
+                print(f"Erro ao enviar mensagem para {usuario}: {e}")
+
+# Inicializar a thread para enviar mensagens
+thread_envio = threading.Thread(target=enviar_mensagens)
+thread_envio.daemon = True
+thread_envio.start()
+
+# Manter o programa em execução
+while True:
+    pass
