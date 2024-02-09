@@ -1,11 +1,23 @@
 import socket
 import threading
+import os
+import platform
 
 # Lista de IPs dos usuários
 usuarios = ["192.168.1.5", "192.168.1.6", "192.168.1.14", "192.168.1.7"]
 
 # Porta para comunicação
 porta = 5111
+
+# Função para limpar a tela de forma multiplataforma
+def clear_screen():
+    if platform.system() == "Windows":
+        os.system('cls')
+    else:
+        os.system('clear')
+
+# Lista para armazenar as mensagens recebidas
+mensagens_recebidas = []
 
 # Função para receber mensagens
 def receber_mensagens():
@@ -15,7 +27,14 @@ def receber_mensagens():
 
     while True:
         mensagem, endereco = sock_recebimento.recvfrom(1024)
-        print(f"Mensagem recebida de {endereco}: {mensagem.decode('utf-8')}")
+        # Adicionar mensagem recebida à lista
+        mensagens_recebidas.append((endereco, mensagem.decode('utf-8')))
+        # Limpar a tela e exibir as mensagens recebidas
+        clear_screen()
+        print("Mensagens Recebidas:")
+        for endereco, mensagem in mensagens_recebidas:
+            print(f"{endereco}: {mensagem}")
+        print("\nDigite a mensagem a ser enviada:")
 
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
@@ -28,7 +47,7 @@ def enviar_mensagens():
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     while True:
-        mensagem = input("Digite a mensagem a ser enviada: ")
+        mensagem = input()
         # Enviar a mensagem para o próximo usuário na topologia de anel
         for usuario in usuarios:
             try:
