@@ -2,6 +2,7 @@ import os
 import socket
 import threading
 import time
+import queue
 
 data_users = [
     {"host": '192.168.1.14', "port": 7626},
@@ -9,9 +10,11 @@ data_users = [
     {"host": '192.168.1.12', "port": 7662}
 ]
 
-# Variáveis globais para manter a ordem das mensagens
-message_queue = []  # Fila de mensagens a serem enviadas
-message_lock = threading.Lock()  # Lock para garantir a sincronização na manipulação da fila
+# Lista para armazenar as mensagens recebidas
+chat_history = []
+
+# Fila para manter as mensagens a serem enviadas
+message_queue = queue.Queue()
 
 def send_message(host, port, message):
     try:
@@ -19,7 +22,12 @@ def send_message(host, port, message):
         s.sendto(message.encode(), (host, port))
         s.close()
     except Exception as e:
-        print("Erro ao enviar mensagem:", e)
+        print(f"Erro ao enviar mensagem para {host}:{port}: {e}")
+
+def send_message_to_all_except_self(current_host, current_port, message):
+    for user in data_users:
+        if user["host"] != current_host or user["port"] != current_port:
+            send_message(user["host"], user["port"], message)
 
 def receive_message(port, buffer_size=1024):
     try:
@@ -29,9 +37,8 @@ def receive_message(port, buffer_size=1024):
             data, addr = s.recvfrom(buffer_size)
             received_message = data.decode()
             print(received_message)
-            with message_lock:
-                message_queue.append(received_message)
-            time.sleep(0.5)
+            message_queue.put(received_message)  # Adiciona a mensagem recebida à fila de mensagens
+            chat_history.append(received_message)  # Adiciona a mensagem recebida ao histórico de chat
     except Exception as e:
         print("Erro ao receber mensagem:", e)
     finally:
@@ -42,9 +49,8 @@ def clear_terminal():
 
 def display_chat_history():
     clear_terminal()
-    with message_lock:
-        for message in message_queue:
-            print(message)
+    for message in chat_history:
+        print(message)
 
 if __name__ == "__main__":
     for user in data_users:
@@ -52,9 +58,6 @@ if __name__ == "__main__":
 
     while True:
         message = input("Digite uma mensagem para enviar para o grupo: ")
+        message_queue.put(f"Você: {message}")
+        threading.Thread(target=send_message_to_all_except_self, args=(socket.gethostbyname(socket.gethostname()), data_users[0]["port"], f"Você: {message}")).start()
         display_chat_history()
-        with message_lock:
-            message_queue.append(f"Você: {message}")
-            for i, user in enumerate(data_users):
-                next_user = data_users[(i + 1) % len(data_users)]  # Próximo usuário no anel
-                send_message(next_user["host"], next_user["port"], message)
