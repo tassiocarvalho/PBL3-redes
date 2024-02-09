@@ -25,7 +25,6 @@ def receive_message(port, buffer_size=1024):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.bind(('', port))
-        print(f"Aguardando mensagens na porta {port}")
         while True:
             data, addr = s.recvfrom(buffer_size)
             received_message = data.decode()
