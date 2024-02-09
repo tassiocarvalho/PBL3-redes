@@ -3,19 +3,20 @@ import threading
 import time
 
 data_users = [
-    {"host": '172.16.103.1', "port": 1111, "nome": "Abraao"},
-    {"host": '172.16.103.2', "port": 2222, "nome": "Bruna"},
-    {"host": '172.16.103.3', "port": 3333, "nome": "Caio"},
-    {"host": '10.65.138.64', "port": 4444, "nome": "Daniela"},
-    {"host": '10.65.128.250', "port": 5555, "nome": "Edu"},
-    {"host": '192.168.1.200', "port": 6666, "nome": "Fernanda"},
-    {"host": '172.16.103.4', "port": 3332, "nome": "alk"},
-    {"host": '172.16.103.5', "port": 3334, "nome": "marco"},
-    {"host": '172.16.103.6', "port": 3335, "nome": "silva"},
-    {"host": '172.16.103.7', "port": 3336, "nome": "freitas"},
-    {"host": '172.16.103.8', "port": 3337, "nome": "pedro"},
-    {"host": '172.16.103.9', "port": 3338, "nome": "santos"},
-    {"host": '172.16.103.243', "port": 7666, "nome": "Gabriel"}
+    #{"host": '172.16.103.1', "port": 1111, "nome": "Abraao"},
+    #{"host": '172.16.103.2', "port": 2222, "nome": "Bruna"},
+    #{"host": '172.16.103.3', "port": 3333, "nome": "Caio"},
+    #{"host": '10.65.138.64', "port": 4444, "nome": "Daniela"},
+    #{"host": '10.65.128.250', "port": 5555, "nome": "Edu"},
+    #{"host": '192.168.1.200', "port": 6666, "nome": "Fernanda"},
+    #{"host": '172.16.103.4', "port": 3332, "nome": "alk"},
+    #{"host": '172.16.103.5', "port": 3334, "nome": "marco"},
+    #{"host": '172.16.103.6', "port": 3335, "nome": "silva"},
+    #{"host": '172.16.103.7', "port": 3336, "nome": "freitas"},
+    #{"host": '172.16.103.8', "port": 3337, "nome": "pedro"},
+    #{"host": '172.16.103.9', "port": 3338, "nome": "santos"}
+    {"host": '192.168.1.14', "port": 7626, "nome": "Gabriel"},
+    {"host": '192.168.1.5', "port": 7666, "nome": "pangi"}
 ]
 
 def send_message(host, port, message):
