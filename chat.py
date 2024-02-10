@@ -28,25 +28,16 @@ def receber_mensagens():
 
     while True:
         mensagem, endereco = sock_recebimento.recvfrom(1024)
-        mensagem_str = mensagem.decode('utf-8')
-        # Verificar se a mensagem termina com '/'
-        if mensagem_str.endswith('/'):
-            # Contar o número de ocorrências da marca '/'
-            num_barras = mensagem_str.count('/')
-            # Adicionar mensagem recebida à lista
-            mensagens_recebidas.append((endereco, mensagem_str))
-            # Limpar a tela e exibir as mensagens recebidas
-            clear_screen()
-            print("Mensagens Recebidas:")
-            for endereco, mensagem in mensagens_recebidas:
-                # Exibir uma marca extra para cada ocorrência adicional de '/'
-                marca_extra = '/' * (num_barras - 1)
-                print(f"{endereco}: {mensagem}{marca_extra}")
-            print("\nDigite a mensagem a ser enviada:")
-        else:
-            print("Erro: Mensagem recebida inválida:", mensagem_str)
-
-
+        # Decodificar a mensagem JSON
+        mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
+        # Adicionar mensagem recebida à lista
+        mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+        # Limpar a tela e exibir as mensagens recebidas
+        clear_screen()
+        print("Mensagens Recebidas:")
+        for endereco, mensagem in mensagens_recebidas:
+            print(f"{endereco}: {mensagem}")
+        print("\nDigite a mensagem a ser enviada:")
 
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
@@ -65,7 +56,7 @@ def enviar_mensagens():
         # Enviar a mensagem para o próximo usuário na lista de usuários
         for usuario in usuarios:
             try:
-                sock_envio.sendto(mensagem_json.encode('utf-8') + b'/', (usuario, porta))
+                sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
