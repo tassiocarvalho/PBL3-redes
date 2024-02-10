@@ -31,16 +31,21 @@ def receber_mensagens():
         mensagem_str = mensagem.decode('utf-8')
         # Verificar se a mensagem termina com '/'
         if mensagem_str.endswith('/'):
+            # Contar o número de ocorrências da marca '/'
+            num_barras = mensagem_str.count('/')
             # Adicionar mensagem recebida à lista
             mensagens_recebidas.append((endereco, mensagem_str))
             # Limpar a tela e exibir as mensagens recebidas
             clear_screen()
             print("Mensagens Recebidas:")
             for endereco, mensagem in mensagens_recebidas:
-                print(f"{endereco}: {mensagem}")
+                # Exibir uma marca extra para cada ocorrência adicional de '/'
+                marca_extra = '/' * (num_barras - 1)
+                print(f"{endereco}: {mensagem}{marca_extra}")
             print("\nDigite a mensagem a ser enviada:")
         else:
             print("Erro: Mensagem recebida inválida:", mensagem_str)
+
 
 
 # Inicializar a thread para receber mensagens
