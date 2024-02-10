@@ -51,8 +51,10 @@ def enviar_mensagens():
 
     while True:
         mensagem = input()
+        # Adiciona uma barra (/) na frente da mensagem para indicar que foi enviada
+        mensagem_enviada = '/' + mensagem
         # Codificar a mensagem para JSON
-        mensagem_json = json.dumps({'mensagem': mensagem})
+        mensagem_json = json.dumps({'mensagem': mensagem_enviada})
         # Enviar a mensagem para o próximo usuário na lista de usuários
         for usuario in usuarios:
             try:
