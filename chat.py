@@ -66,6 +66,18 @@ thread_envio = threading.Thread(target=enviar_mensagens)
 thread_envio.daemon = True
 thread_envio.start()
 
+# Função para marcar uma mensagem como lida
+def marcar_como_lida(mensagem):
+    for i, (endereco, texto, lida) in enumerate(mensagens_recebidas):
+        if texto == mensagem:
+            mensagens_recebidas[i] = (endereco, texto, True)
+            break
+
 # Manter o programa em execução
 while True:
-    pass
+    # Verificar se houve entrada do usuário
+    entrada = input()
+    if entrada.startswith("lido"):
+        # Marcar a mensagem como lida
+        mensagem = entrada.split(" ", 1)[1]
+        marcar_como_lida(mensagem)
