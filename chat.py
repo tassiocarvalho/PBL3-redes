@@ -94,17 +94,14 @@ def reenviar_mensagens_nao_confirmadas(usuario):
 
 # Função para enviar a mensagem de solicitação de retransmissão ao iniciar o programa
 def enviar_mensagem_retransmissao():
-    # Lista de usuários que não estão online no momento da inicialização
-    usuarios_offline = [usuario for usuario in usuarios if usuario not in [endereco[0] for endereco in mensagens_recebidas]]
-
     # Socket UDP para envio de mensagens
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # Codificar a mensagem para JSON
     mensagem_json = json.dumps({'mensagem': MENSAGEM_RETRANSMISSAO})
 
-    # Enviar a mensagem de solicitação de retransmissão para cada usuário offline
-    for usuario in usuarios_offline:
+    # Enviar a mensagem de solicitação de retransmissão para cada usuário na lista de usuários
+    for usuario in usuarios:
         try:
             sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
         except Exception as e:
