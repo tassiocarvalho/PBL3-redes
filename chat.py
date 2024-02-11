@@ -34,15 +34,24 @@ def receber_mensagens():
         mensagem, endereco = sock_recebimento.recvfrom(1024)
         # Decodificar a mensagem JSON
         mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
-        # Adicionar mensagem recebida à lista
-        if mensagem_decodificada['id'] not in [msg[0] for msg in mensagens_recebidas]:
-            mensagens_recebidas.append((mensagem_decodificada['id'], endereco, mensagem_decodificada['mensagem']))
-            # Limpar a tela e exibir as mensagens recebidas
-            clear_screen()
-            print("Mensagens Recebidas:")
-            for id_mensagem, endereco, mensagem in mensagens_recebidas:
-                print(f"{id_mensagem} - {endereco}: {mensagem}")
-            print("\nDigite a mensagem a ser enviada:")
+        # Se a mensagem for um ACK, remover da lista de mensagens enviadas
+        if mensagem_decodificada['tipo'] == 'ack':
+            id_ack = mensagem_decodificada['id']
+            for msg in mensagens_enviadas:
+                if msg[0] == id_ack:
+                    mensagens_enviadas.remove(msg)
+                    break
+        # Caso contrário, é uma mensagem recebida
+        else:
+            # Adicionar mensagem recebida à lista
+            if mensagem_decodificada['id'] not in [msg[0] for msg in mensagens_recebidas]:
+                mensagens_recebidas.append((mensagem_decodificada['id'], endereco, mensagem_decodificada['mensagem']))
+                # Limpar a tela e exibir as mensagens recebidas
+                clear_screen()
+                print("Mensagens Recebidas:")
+                for id_mensagem, endereco, mensagem in mensagens_recebidas:
+                    print(f"{id_mensagem} - {endereco}: {mensagem}")
+                print("\nDigite a mensagem a ser enviada:")
 
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
@@ -59,7 +68,7 @@ def enviar_mensagens():
         # Gerar um ID único para a mensagem
         id_mensagem = str(time.time())
         # Codificar a mensagem para JSON
-        mensagem_json = json.dumps({'id': id_mensagem, 'mensagem': mensagem})
+        mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
         # Adicionar a mensagem enviada à lista de mensagens enviadas
         mensagens_enviadas.append((id_mensagem, mensagem))
         # Enviar a mensagem para o próximo usuário na lista de usuários
@@ -68,6 +77,27 @@ def enviar_mensagens():
                 sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
+        # Esperar por um ACK
+        esperar_ack(sock_envio, id_mensagem)
+
+# Função para esperar um ACK para uma mensagem enviada
+def esperar_ack(sock_envio, id_mensagem):
+    tempo_inicio = time.time()
+    while True:
+        if any(msg[0] == id_mensagem for msg in mensagens_enviadas):
+            if time.time() - tempo_inicio > 5:  # Tempo limite de espera por ACK (5 segundos)
+                # Reenviar a mensagem se não receber um ACK dentro do tempo limite
+                reenviar_mensagem(sock_envio, id_mensagem)
+                break
+        else:
+            break
+
+# Função para reenviar uma mensagem não confirmada
+def reenviar_mensagem(sock_envio, id_mensagem):
+    mensagem = next(msg[1] for msg in mensagens_enviadas if msg[0] == id_mensagem)
+    mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
+    for usuario in usuarios:
+        sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
 
 # Inicializar a thread para enviar mensagens
 thread_envio = threading.Thread(target=enviar_mensagens)
