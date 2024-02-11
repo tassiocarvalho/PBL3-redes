@@ -14,6 +14,9 @@ porta = 5111
 # Tempo limite para esperar pela confirmação (em segundos)
 timeout = 5
 
+# Mensagem especial para solicitar a retransmissão de mensagens perdidas
+MENSAGEM_RETRANSMISSAO = "__RETRANSMITIR__"
+
 # Função para limpar a tela de forma multiplataforma
 def clear_screen():
     if platform.system() == "Windows":
@@ -37,15 +40,20 @@ def receber_mensagens():
         mensagem, endereco = sock_recebimento.recvfrom(1024)
         # Decodificar a mensagem JSON
         mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
-        # Adicionar mensagem recebida à lista
-        mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
-        # Limpar a tela e exibir as mensagens recebidas
-        clear_screen()
-        print("Mensagens Recebidas:")
-        for endereco, mensagem in mensagens_recebidas:
-            print(f"{endereco}: {mensagem}")
-        print("\nDigite a mensagem a ser enviada:")
-
+        
+        if mensagem_decodificada['mensagem'] == MENSAGEM_RETRANSMISSAO:
+            # Mensagem de solicitação de retransmissão, reenviar mensagens não confirmadas
+            reenviar_mensagens_nao_confirmadas()
+        else:
+            # Adicionar mensagem recebida à lista
+            mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+            # Limpar a tela e exibir as mensagens recebidas
+            clear_screen()
+            print("Mensagens Recebidas:")
+            for endereco, mensagem in mensagens_recebidas:
+                print(f"{endereco}: {mensagem}")
+            print("\nDigite a mensagem a ser enviada:")
+        
         # Verificar se a mensagem recebida corresponde a uma mensagem enviada anteriormente e não confirmada
         for mensagem_enviada, tempo_envio in mensagens_enviadas.items():
             if mensagem_enviada == mensagem_decodificada['mensagem'] and time.time() - tempo_envio > timeout:
@@ -68,6 +76,13 @@ def enviar_mensagem(mensagem):
             mensagens_enviadas[mensagem] = time.time()
         except Exception as e:
             print(f"Erro ao enviar mensagem para {usuario}: {e}")
+
+# Função para reenviar mensagens não confirmadas
+def reenviar_mensagens_nao_confirmadas():
+    for mensagem, tempo_envio in mensagens_enviadas.items():
+        if time.time() - tempo_envio > timeout:
+            # Mensagem não foi confirmada e o tempo limite foi atingido, reenviar
+            enviar_mensagem(mensagem)
 
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
