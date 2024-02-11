@@ -78,12 +78,29 @@ def esperar_confirmacoes():
     while True:
         # Verificar se algum tempo limite foi atingido
         if time.time() - inicio > timeout:
+            # Reenviar mensagens não confirmadas
+            reenviar_mensagens_nao_confirmadas()
             break
 
         # Verificar se todas as mensagens enviadas foram confirmadas
         todas_confirmadas = all(mensagem in mensagens_recebidas for mensagem in mensagens_enviadas.keys())
         if todas_confirmadas:
             break
+
+# Função para reenviar mensagens não confirmadas
+def reenviar_mensagens_nao_confirmadas():
+    for mensagem, tempo_envio in mensagens_enviadas.items():
+        # Verificar se a mensagem não foi confirmada e o tempo limite foi atingido
+        if mensagem not in [mensagem for _, mensagem in mensagens_recebidas] and time.time() - tempo_envio > timeout:
+            # Reenviar a mensagem para cada usuário na lista de usuários
+            mensagem_json = json.dumps({'mensagem': mensagem})
+            for usuario in usuarios:
+                try:
+                    sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
+                    # Atualizar o tempo de envio da mensagem
+                    mensagens_enviadas[mensagem] = time.time()
+                except Exception as e:
+                    print(f"Erro ao reenviar mensagem para {usuario}: {e}")
 
 # Inicializar a thread para enviar mensagens
 thread_envio = threading.Thread(target=enviar_mensagens)
