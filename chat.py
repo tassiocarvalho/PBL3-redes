@@ -6,6 +6,16 @@ import json
 import uuid
 import time
 
+class MensagemStorage:
+    def __init__(self):
+        self.mensagens = []
+
+    def adicionar_mensagem(self, mensagem):
+        self.mensagens.append(mensagem)
+
+    def obter_mensagens(self):
+        return self.mensagens
+
 class ChatP2P:
     def __init__(self):
         self.usuarios = ["192.168.1.5", "192.168.1.14"]
@@ -17,6 +27,7 @@ class ChatP2P:
         self.sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.id = uuid.uuid4()
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
+        self.storage = MensagemStorage()
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
@@ -53,7 +64,7 @@ class ChatP2P:
 
     def tratar_ack(self, mensagem_id):
         """Função para tratar o recebimento de um ACK"""
-        for index, (mensagem_enviada_id, mensagem_enviada) in enumerate(self.mensagens_enviadas):
+        for index, (mensagem_enviada_id, _) in enumerate(self.mensagens_enviadas):
             if mensagem_enviada_id == mensagem_id:
                 del self.mensagens_enviadas[index]
                 break
@@ -67,7 +78,7 @@ class ChatP2P:
         """Função para enviar uma mensagem"""
         mensagem_id = str(uuid.uuid4())
         mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
-        self.mensagens_enviadas.append((mensagem_id, mensagem_json))
+        self.storage.adicionar_mensagem(mensagem_json)  # Armazenar a mensagem
         for usuario in self.usuarios:
             try:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
@@ -85,6 +96,11 @@ class ChatP2P:
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
+        # Envie mensagens pendentes para novos membros ao se conectar
+        for mensagem_json in self.storage.obter_mensagens():
+            for usuario in self.usuarios:
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
         thread_recebimento.start()
