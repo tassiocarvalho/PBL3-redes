@@ -84,6 +84,24 @@ def reenviar_mensagens_nao_confirmadas():
             # Mensagem não foi confirmada e o tempo limite foi atingido, reenviar
             enviar_mensagem(mensagem)
 
+# Função para enviar a mensagem de solicitação de retransmissão ao se conectar
+def enviar_mensagem_retransmissao():
+    # Socket UDP para envio de mensagens
+    sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # Codificar a mensagem para JSON
+    mensagem_json = json.dumps({'mensagem': MENSAGEM_RETRANSMISSAO})
+
+    # Enviar a mensagem de solicitação de retransmissão para cada usuário na lista de usuários
+    for usuario in usuarios:
+        try:
+            sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
+        except Exception as e:
+            print(f"Erro ao enviar mensagem para {usuario}: {e}")
+
+# Enviar a mensagem de solicitação de retransmissão ao iniciar o programa
+enviar_mensagem_retransmissao()
+
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
 thread_recebimento.daemon = True
