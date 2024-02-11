@@ -73,13 +73,9 @@ def enviar_e_aguardar_ack(mensagem, sock_envio):
             sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
         except Exception as e:
             print(f"Erro ao enviar mensagem para {usuario}: {e}")
-    # Esperar por um ACK
-    tempo_inicio = time.time()
-    while id_mensagem in mensagens_enviadas:
-        if time.time() - tempo_inicio > tempo_limite:  # Tempo limite de espera por ACK
-            # Reenviar a mensagem se não receber um ACK dentro do tempo limite
-            reenviar_mensagem(sock_envio, id_mensagem)
-            break
+
+    # Agendar a execução da função reenviar_mensagem após o tempo limite
+    threading.Timer(tempo_limite, reenviar_mensagem, args=(sock_envio, id_mensagem)).start()
 
 # Função para reenviar uma mensagem não confirmada
 def reenviar_mensagem(sock_envio, id_mensagem):
