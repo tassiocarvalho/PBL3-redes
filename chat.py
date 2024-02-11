@@ -8,15 +8,13 @@ import time
 
 class MensagemStorage:
     def __init__(self):
-        self.mensagens_por_usuario = {}  # Dicionário para armazenar mensagens por usuário
+        self.mensagens = []
 
-    def adicionar_mensagem(self, usuario, mensagem):
-        if usuario not in self.mensagens_por_usuario:
-            self.mensagens_por_usuario[usuario] = []
-        self.mensagens_por_usuario[usuario].append(mensagem)
+    def adicionar_mensagem(self, mensagem):
+        self.mensagens.append(mensagem)
 
-    def obter_mensagens(self, usuario):
-        return self.mensagens_por_usuario.get(usuario, [])
+    def obter_mensagens(self):
+        return self.mensagens
 
 class ChatP2P:
     def __init__(self):
@@ -80,8 +78,8 @@ class ChatP2P:
         """Função para enviar uma mensagem"""
         mensagem_id = str(uuid.uuid4())
         mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
+        self.storage.adicionar_mensagem(mensagem_json)  # Armazenar a mensagem
         for usuario in self.usuarios:
-            self.storage.adicionar_mensagem(usuario, mensagem_json)  # Armazenar a mensagem para o usuário
             try:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
             except Exception as e:
@@ -99,8 +97,8 @@ class ChatP2P:
     def iniciar_chat(self):
         """Método para iniciar o chat"""
         # Envie mensagens pendentes para novos membros ao se conectar
-        for usuario in self.usuarios:
-            for mensagem_json in self.storage.obter_mensagens(usuario):
+        for mensagem_json in self.storage.obter_mensagens():
+            for usuario in self.usuarios:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
 
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
