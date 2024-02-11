@@ -110,13 +110,13 @@ def enviar_mensagem_retransmissao():
         except Exception as e:
             print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
-# Enviar a mensagem de solicitação de retransmissão ao iniciar o programa
-enviar_mensagem_retransmissao()
-
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
 thread_recebimento.daemon = True
 thread_recebimento.start()
+
+# Enviar a mensagem de solicitação de retransmissão ao iniciar o programa
+enviar_mensagem_retransmissao()
 
 # Manter o programa em execução
 while True:
