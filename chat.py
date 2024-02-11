@@ -24,6 +24,9 @@ mensagens_enviadas = {}
 # Lista para armazenar as mensagens recebidas
 mensagens_recebidas = []
 
+# Tempo limite para esperar um ACK (em segundos)
+tempo_limite = 5
+
 # Função para receber mensagens
 def receber_mensagens():
     # Socket UDP para recebimento de mensagens
@@ -56,33 +59,24 @@ thread_recebimento = threading.Thread(target=receber_mensagens)
 thread_recebimento.daemon = True
 thread_recebimento.start()
 
-# Função para enviar mensagens
-def enviar_mensagens():
-    # Socket UDP para envio de mensagens
-    sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    while True:
-        mensagem = input()
-        # Gerar um ID único para a mensagem
-        id_mensagem = str(time.time())
-        # Codificar a mensagem para JSON
-        mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
-        # Adicionar a mensagem enviada ao dicionário de mensagens enviadas
-        mensagens_enviadas[id_mensagem] = mensagem
-        # Enviar a mensagem para o próximo usuário na lista de usuários
-        for usuario in usuarios:
-            try:
-                sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
-            except Exception as e:
-                print(f"Erro ao enviar mensagem para {usuario}: {e}")
-        # Esperar por um ACK
-        esperar_ack(sock_envio, id_mensagem)
-
-# Função para esperar um ACK para uma mensagem enviada
-def esperar_ack(sock_envio, id_mensagem):
+# Função para enviar mensagens e esperar por ACKs
+def enviar_e_aguardar_ack(mensagem, sock_envio):
+    # Gerar um ID único para a mensagem
+    id_mensagem = str(time.time())
+    # Codificar a mensagem para JSON
+    mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
+    # Adicionar a mensagem enviada ao dicionário de mensagens enviadas
+    mensagens_enviadas[id_mensagem] = mensagem
+    # Enviar a mensagem para o próximo usuário na lista de usuários
+    for usuario in usuarios:
+        try:
+            sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
+        except Exception as e:
+            print(f"Erro ao enviar mensagem para {usuario}: {e}")
+    # Esperar por um ACK
     tempo_inicio = time.time()
     while id_mensagem in mensagens_enviadas:
-        if time.time() - tempo_inicio > 5:  # Tempo limite de espera por ACK (5 segundos)
+        if time.time() - tempo_inicio > tempo_limite:  # Tempo limite de espera por ACK
             # Reenviar a mensagem se não receber um ACK dentro do tempo limite
             reenviar_mensagem(sock_envio, id_mensagem)
             break
@@ -93,6 +87,15 @@ def reenviar_mensagem(sock_envio, id_mensagem):
     mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
     for usuario in usuarios:
         sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
+
+# Inicializar o socket UDP para envio de mensagens
+sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# Função para enviar mensagens
+def enviar_mensagens():
+    while True:
+        mensagem = input("\nDigite a mensagem a ser enviada: ")
+        enviar_e_aguardar_ack(mensagem, sock_envio)
 
 # Inicializar a thread para enviar mensagens
 thread_envio = threading.Thread(target=enviar_mensagens)
