@@ -61,7 +61,7 @@ def receber_mensagens():
                 enviar_mensagem(mensagem_enviada)
 
 # Função para enviar uma mensagem
-def enviar_mensagem(mensagem):
+def enviar_mensagem(mensagem, usuario=None):
     # Socket UDP para envio de mensagens
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -69,13 +69,21 @@ def enviar_mensagem(mensagem):
     mensagem_json = json.dumps({'mensagem': mensagem})
 
     # Enviar a mensagem para cada usuário na lista de usuários
-    for usuario in usuarios:
+    if usuario:
         try:
             sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
             # Registrar o tempo de envio da mensagem
             mensagens_enviadas[mensagem] = time.time()
         except Exception as e:
             print(f"Erro ao enviar mensagem para {usuario}: {e}")
+    else:
+        for usuario in usuarios:
+            try:
+                sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
+                # Registrar o tempo de envio da mensagem
+                mensagens_enviadas[mensagem] = time.time()
+            except Exception as e:
+                print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
 # Função para reenviar mensagens não confirmadas para um usuário específico
 def reenviar_mensagens_nao_confirmadas(usuario):
