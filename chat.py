@@ -20,9 +20,6 @@ def clear_screen():
 # Lista para armazenar as mensagens recebidas
 mensagens_recebidas = []
 
-# Dicionário para armazenar o estado de leitura das mensagens
-mensagens_lidas = {}
-
 # Função para receber mensagens
 def receber_mensagens():
     # Socket UDP para recebimento de mensagens
@@ -34,15 +31,13 @@ def receber_mensagens():
         # Decodificar a mensagem JSON
         mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
         # Adicionar mensagem recebida à lista
-        mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
-        mensagens_lidas[len(mensagens_recebidas) - 1] = False  # Define a mensagem como não lida
+        mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem'], mensagem_decodificada.get('lida', False)))
         # Limpar a tela e exibir as mensagens recebidas
         clear_screen()
         print("Mensagens Recebidas:")
-        for i, (endereco, mensagem) in enumerate(mensagens_recebidas):
-            # Adiciona mais uma barra se a mensagem foi lida
-            barra = '/' if not mensagens_lidas[i] else '//'
-            print(f"{endereco} falou: {mensagem} {barra}")
+        for endereco, mensagem, lida in mensagens_recebidas:
+            marcador = '/' if not lida else '//'
+            print(f"{endereco} falou: {mensagem} {marcador}")
         print("\nDigite a mensagem a ser enviada:")
 
 # Inicializar a thread para receber mensagens
