@@ -27,9 +27,6 @@ mensagens_recebidas = []
 # Dicionário para manter o controle das mensagens enviadas e seus status de confirmação
 mensagens_enviadas = {}
 
-# Lista para armazenar as mensagens pendentes de entrega
-mensagens_pendentes = []
-
 # Função para receber mensagens
 def receber_mensagens():
     # Socket UDP para recebimento de mensagens
@@ -48,55 +45,36 @@ def receber_mensagens():
         for endereco, mensagem in mensagens_recebidas:
             print(f"{endereco}: {mensagem}")
         print("\nDigite a mensagem a ser enviada:")
-        
-        # Tentar reenviar mensagens pendentes
-        reenviar_mensagens_pendentes()
 
-# Função para enviar mensagens
-def enviar_mensagens():
+        # Verificar se a mensagem recebida corresponde a uma mensagem enviada anteriormente e não confirmada
+        for mensagem_enviada, tempo_envio in mensagens_enviadas.items():
+            if mensagem_enviada == mensagem_decodificada['mensagem'] and time.time() - tempo_envio > timeout:
+                # A mensagem não foi confirmada e o tempo limite foi atingido, reenviar
+                enviar_mensagem(mensagem_enviada)
+
+# Função para enviar uma mensagem
+def enviar_mensagem(mensagem):
     # Socket UDP para envio de mensagens
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    while True:
-        mensagem = input()
-        # Codificar a mensagem para JSON
-        mensagem_json = json.dumps({'mensagem': mensagem})
-        # Enviar a mensagem para cada usuário na lista de usuários
-        for usuario in usuarios:
-            try:
-                sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
-                # Registrar a mensagem enviada e o tempo atual
-                mensagens_enviadas[mensagem] = time.time()
-                # Adicionar a mensagem à lista de mensagens pendentes
-                mensagens_pendentes.append(mensagem)
-            except Exception as e:
-                print(f"Erro ao enviar mensagem para {usuario}: {e}")
+    # Codificar a mensagem para JSON
+    mensagem_json = json.dumps({'mensagem': mensagem})
 
-        # Aguardar confirmações de recebimento
-        time.sleep(1)  # Adicionar um pequeno atraso para evitar reenvios excessivos
-
-# Função para reenviar mensagens pendentes
-def reenviar_mensagens_pendentes():
-    for mensagem in mensagens_pendentes:
-        if mensagem not in [mensagem for _, mensagem in mensagens_recebidas]:
-            # Mensagem não foi confirmada, reenviar para cada usuário
-            mensagem_json = json.dumps({'mensagem': mensagem})
-            for usuario in usuarios:
-                try:
-                    sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
-                except Exception as e:
-                    print(f"Erro ao reenviar mensagem para {usuario}: {e}")
+    # Enviar a mensagem para cada usuário na lista de usuários
+    for usuario in usuarios:
+        try:
+            sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
+            # Registrar o tempo de envio da mensagem
+            mensagens_enviadas[mensagem] = time.time()
+        except Exception as e:
+            print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
 thread_recebimento.daemon = True
 thread_recebimento.start()
 
-# Inicializar a thread para enviar mensagens
-thread_envio = threading.Thread(target=enviar_mensagens)
-thread_envio.daemon = True
-thread_envio.start()
-
 # Manter o programa em execução
 while True:
-    pass
+    mensagem = input("Digite a mensagem a ser enviada: ")
+    enviar_mensagem(mensagem)
