@@ -18,8 +18,8 @@ def clear_screen():
     else:
         os.system('clear')
 
-# Lista para armazenar as mensagens enviadas e seus identificadores
-mensagens_enviadas = []
+# Dicionário para armazenar as mensagens enviadas e seus respectivos ACKs
+mensagens_enviadas = {}
 
 # Lista para armazenar as mensagens recebidas
 mensagens_recebidas = []
@@ -37,10 +37,8 @@ def receber_mensagens():
         # Se a mensagem for um ACK, remover da lista de mensagens enviadas
         if mensagem_decodificada['tipo'] == 'ack':
             id_ack = mensagem_decodificada['id']
-            for msg in mensagens_enviadas:
-                if msg[0] == id_ack:
-                    mensagens_enviadas.remove(msg)
-                    break
+            if id_ack in mensagens_enviadas:
+                del mensagens_enviadas[id_ack]
         # Caso contrário, é uma mensagem recebida
         else:
             # Adicionar mensagem recebida à lista
@@ -69,8 +67,8 @@ def enviar_mensagens():
         id_mensagem = str(time.time())
         # Codificar a mensagem para JSON
         mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
-        # Adicionar a mensagem enviada à lista de mensagens enviadas
-        mensagens_enviadas.append((id_mensagem, mensagem))
+        # Adicionar a mensagem enviada ao dicionário de mensagens enviadas
+        mensagens_enviadas[id_mensagem] = mensagem
         # Enviar a mensagem para o próximo usuário na lista de usuários
         for usuario in usuarios:
             try:
@@ -83,18 +81,15 @@ def enviar_mensagens():
 # Função para esperar um ACK para uma mensagem enviada
 def esperar_ack(sock_envio, id_mensagem):
     tempo_inicio = time.time()
-    while True:
-        if any(msg[0] == id_mensagem for msg in mensagens_enviadas):
-            if time.time() - tempo_inicio > 5:  # Tempo limite de espera por ACK (5 segundos)
-                # Reenviar a mensagem se não receber um ACK dentro do tempo limite
-                reenviar_mensagem(sock_envio, id_mensagem)
-                break
-        else:
+    while id_mensagem in mensagens_enviadas:
+        if time.time() - tempo_inicio > 5:  # Tempo limite de espera por ACK (5 segundos)
+            # Reenviar a mensagem se não receber um ACK dentro do tempo limite
+            reenviar_mensagem(sock_envio, id_mensagem)
             break
 
 # Função para reenviar uma mensagem não confirmada
 def reenviar_mensagem(sock_envio, id_mensagem):
-    mensagem = next(msg[1] for msg in mensagens_enviadas if msg[0] == id_mensagem)
+    mensagem = mensagens_enviadas[id_mensagem]
     mensagem_json = json.dumps({'id': id_mensagem, 'tipo': 'mensagem', 'mensagem': mensagem})
     for usuario in usuarios:
         sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
