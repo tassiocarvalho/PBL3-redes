@@ -15,76 +15,58 @@ class ChatP2P:
         self.sock_recebimento.bind(('0.0.0.0', self.porta))
         self.sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.id = uuid.uuid4()
-        self.numero_sequencia = 0  # Número de sequência para controle de ACKs
-        self.mensagens_enviadas = {}  # Dicionário para rastrear mensagens enviadas
-        self.timeout = 5  # Tempo limite para aguardar um ACK
-        self.intervalo_reenvio = 10  # Intervalo mínimo entre reenvios para o mesmo usuário
+        self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
 
     def clear_screen(self):
+        """Função para limpar a tela de forma multiplataforma"""
         if platform.system() == "Windows":
             os.system('cls')
         else:
             os.system('clear')
 
     def receber_mensagens(self):
+        """Função para receber mensagens"""
         while True:
             mensagem, endereco = self.sock_recebimento.recvfrom(1024)
             mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
-            if 'mensagem' in mensagem_decodificada:
+            mensagem_id = mensagem_decodificada.get('id', None)
+
+            # Verificar se a mensagem é um ACK
+            if mensagem_decodificada.get('tipo') == 'ACK' and mensagem_id:
+                self.tratar_ack(mensagem_id)
+            else:
                 self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+                self.enviar_ack(endereco, mensagem_id)
                 self.clear_screen()
                 print("Mensagens Recebidas:")
                 for endereco, mensagem in self.mensagens_recebidas:
                     print(f"{endereco}: {mensagem}")
                 print("\nDigite a mensagem a ser enviada:")
-            elif 'ack' in mensagem_decodificada:
-                ack_numero_sequencia = mensagem_decodificada['ack']
-                # Remover a mensagem enviada correspondente do registro
-                self.mensagens_enviadas.pop(ack_numero_sequencia, None)
+
+    def tratar_ack(self, mensagem_id):
+        """Função para tratar o recebimento de um ACK"""
+        # Remover a mensagem da lista de mensagens enviadas pendentes
+        pass  # Implementar conforme necessário
+
+    def enviar_ack(self, endereco, mensagem_id):
+        """Função para enviar um ACK"""
+        ack = json.dumps({'id': str(self.id), 'tipo': 'ACK', 'mensagem_id': mensagem_id})
+        self.sock_envio.sendto(ack.encode('utf-8'), endereco)
 
     def enviar_mensagem(self, mensagem):
-        numero_sequencia_atual = self.numero_sequencia
-        timestamp_atual = time.time()
-        mensagem_json = json.dumps({'id': str(self.id), 'numero_sequencia': numero_sequencia_atual, 'mensagem': mensagem, 'timestamp': timestamp_atual})
+        """Função para enviar uma mensagem"""
+        mensagem_json = json.dumps({'id': str(self.id), 'mensagem': mensagem})
         for usuario in self.usuarios:
             try:
-                # Verificar se a mensagem foi enviada para o mesmo usuário recentemente
-                if self.pode_enviar_para_usuario(usuario):
-                    self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-                    # Armazenar a mensagem enviada no registro
-                    self.mensagens_enviadas[numero_sequencia_atual] = {'mensagem': mensagem, 'timestamp': timestamp_atual, 'ultimo_envio_usuario': {usuario: timestamp_atual}}  # Armazenar número de sequência e mensagem
-                    self.numero_sequencia += 1
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
-    def verificar_ack(self):
-        while True:
-            # Verificar mensagens enviadas sem ACK
-            for numero_sequencia, mensagem in list(self.mensagens_enviadas.items()):  # Convertendo para lista para evitar modificações durante a iteração
-                if time.time() - mensagem['timestamp'] > self.timeout:
-                    # Verificar se a mensagem já foi reenviada recentemente
-                    for usuario, ultimo_envio in mensagem.get('ultimo_envio_usuario', {}).items():
-                        if time.time() - ultimo_envio > self.intervalo_reenvio:
-                            self.enviar_mensagem(mensagem['mensagem'])  # Retransmitir mensagem
-                            self.mensagens_enviadas[numero_sequencia]['ultimo_envio_usuario'][usuario] = time.time()  # Atualizar o momento do último envio para o usuário
-            time.sleep(1)
-    
-    def pode_enviar_para_usuario(self, usuario):
-        """Verifica se a mensagem pode ser enviada para o usuário com base no intervalo mínimo entre envios."""
-        timestamp_atual = time.time()
-        ultimo_envio = self.mensagens_enviadas.get('ultimo_envio_usuario', {}).get(usuario, 0)
-        if timestamp_atual - ultimo_envio > self.intervalo_reenvio:
-            return True
-        return False
-
     def iniciar_chat(self):
+        """Método para iniciar o chat"""
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
         thread_recebimento.start()
-
-        thread_verificar_ack = threading.Thread(target=self.verificar_ack)
-        thread_verificar_ack.daemon = True
-        thread_verificar_ack.start()
 
         while True:
             mensagem = input()
