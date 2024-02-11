@@ -11,6 +11,7 @@ class ChatP2P:
         self.usuarios = ["192.168.1.5", "192.168.1.14"]
         self.porta = 5111
         self.mensagens_recebidas = []
+        self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
         self.sock_recebimento = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_recebimento.bind(('0.0.0.0', self.porta))
         self.sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -23,6 +24,13 @@ class ChatP2P:
             os.system('cls')
         else:
             os.system('clear')
+
+    def mensagem_enviada_pendente(self, mensagem_id):
+        """Verifica se uma mensagem enviada ainda está pendente"""
+        for mensagem_enviada_id, _ in self.mensagens_enviadas:
+            if mensagem_enviada_id == mensagem_id:
+                return True
+        return False
 
     def receber_mensagens(self):
         """Função para receber mensagens"""
@@ -45,8 +53,10 @@ class ChatP2P:
 
     def tratar_ack(self, mensagem_id):
         """Função para tratar o recebimento de um ACK"""
-        # Remover a mensagem da lista de mensagens enviadas pendentes
-        pass  # Implementar conforme necessário
+        for index, (mensagem_enviada_id, mensagem_enviada) in enumerate(self.mensagens_enviadas):
+            if mensagem_enviada_id == mensagem_id:
+                del self.mensagens_enviadas[index]
+                break
 
     def enviar_ack(self, endereco, mensagem_id):
         """Função para enviar um ACK"""
@@ -55,12 +65,23 @@ class ChatP2P:
 
     def enviar_mensagem(self, mensagem):
         """Função para enviar uma mensagem"""
-        mensagem_json = json.dumps({'id': str(self.id), 'mensagem': mensagem})
+        mensagem_id = str(uuid.uuid4())
+        mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
+        self.mensagens_enviadas.append((mensagem_id, mensagem_json))
         for usuario in self.usuarios:
             try:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
+
+        # Aguardar pelo ACK
+        start_time = time.time()
+        while time.time() - start_time < self.ack_timeout:
+            if not self.mensagem_enviada_pendente(mensagem_id):
+                break
+            time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
+        else:
+            print("Timeout ao aguardar pelo ACK")
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
