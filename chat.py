@@ -93,22 +93,23 @@ def reenviar_mensagens_nao_confirmadas(usuario):
             enviar_mensagem(mensagem, usuario)
 
 # Função para enviar a mensagem de solicitação de retransmissão ao iniciar o programa
-def enviar_mensagem_retransmissao():
+def enviar_mensagem_retransmissao(usuario):
     # Socket UDP para envio de mensagens
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # Codificar a mensagem para JSON
     mensagem_json = json.dumps({'mensagem': MENSAGEM_RETRANSMISSAO})
 
-    # Enviar a mensagem de solicitação de retransmissão para cada usuário na lista de usuários
-    for usuario in usuarios:
+    # Enviar a mensagem de solicitação de retransmissão para o usuário específico
+    for endereco, mensagem in mensagens_recebidas:
         try:
             sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
         except Exception as e:
             print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
-# Enviar a mensagem de solicitação de retransmissão ao iniciar o programa
-enviar_mensagem_retransmissao()
+# Enviar a mensagem de solicitação de retransmissão para cada usuário ao iniciar o programa
+for usuario in usuarios:
+    enviar_mensagem_retransmissao(usuario)
 
 # Inicializar a thread para receber mensagens
 thread_recebimento = threading.Thread(target=receber_mensagens)
