@@ -3,8 +3,8 @@ import threading
 import os
 import platform
 import json
-import uuid
-import time
+import uuid  # Importar a biblioteca uuid para gerar identificadores únicos
+import time  # Importar a biblioteca time para controle de tempo
 
 class ChatP2P:
     def __init__(self):
@@ -14,9 +14,9 @@ class ChatP2P:
         self.sock_recebimento = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_recebimento.bind(('0.0.0.0', self.porta))
         self.sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.id = uuid.uuid4()
-        self.timeout = 5  # Tempo limite em segundos
-        self.max_retransmissoes = 3  # Número máximo de retransmissões
+        self.id = uuid.uuid4()  # Gerar um identificador único para este usuário
+        self.mutex_envio = threading.Lock()  # Mutex para garantir acesso seguro ao envio de mensagens
+        self.mutex_recebimento = threading.Lock()  # Mutex para garantir acesso seguro ao recebimento de mensagens
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
@@ -30,42 +30,44 @@ class ChatP2P:
         while True:
             mensagem, endereco = self.sock_recebimento.recvfrom(1024)
             mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
-            if mensagem_decodificada['id'] not in [msg['id'] for _, msg in self.mensagens_recebidas]:
-                self.mensagens_recebidas.append((endereco, mensagem_decodificada))
-                self.enviar_ack(mensagem_decodificada['id'], endereco)
-
+            with self.mutex_recebimento:
+                self.mensagens_recebidas.append((endereco, mensagem_decodificada['id'], mensagem_decodificada['mensagem']))
             self.clear_screen()
             print("Mensagens Recebidas:")
-            for endereco, mensagem in self.mensagens_recebidas:
-                print(f"{endereco}: {mensagem['mensagem']}")
+            for endereco, id_mensagem, mensagem in self.mensagens_recebidas:
+                print(f"{endereco}: {id_mensagem}: {mensagem}")
             print("\nDigite a mensagem a ser enviada:")
-
-    def enviar_ack(self, id_mensagem, endereco_destino):
-        """Função para enviar um ACK para o remetente"""
-        mensagem_ack = json.dumps({'ack': id_mensagem})
-        self.sock_envio.sendto(mensagem_ack.encode('utf-8'), endereco_destino)
 
     def enviar_mensagem(self, mensagem):
         """Função para enviar uma mensagem"""
         mensagem_json = json.dumps({'id': str(self.id), 'mensagem': mensagem})
-        seq_num = 0  # Número de sequência da mensagem
-        tentativas = 0  # Contador de tentativas de envio
-        while tentativas < self.max_retransmissoes:
-            try:
-                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (self.usuarios[0], self.porta))
-                inicio = time.time()  # Tempo inicial
-                while True:
-                    mensagem, endereco = self.sock_recebimento.recvfrom(1024)
-                    mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
-                    if 'ack' in mensagem_decodificada and mensagem_decodificada['ack'] == str(self.id):
-                        print("ACK recebido com sucesso.")
-                        return  # ACK recebido, encerrar envio
-                    elif time.time() - inicio > self.timeout:
-                        break  # Tempo limite atingido
-                tentativas += 1
-            except Exception as e:
-                print(f"Erro ao enviar mensagem: {e}")
-        print("Número máximo de retransmissões alcançado. Mensagem não enviada.")
+        with self.mutex_envio:
+            for usuario in self.usuarios:
+                try:
+                    self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                except Exception as e:
+                    print(f"Erro ao enviar mensagem para {usuario}: {e}")
+        
+        # Esperar por ACKs
+        timeout = 3  # Tempo limite para esperar ACKs em segundos
+        tempo_inicial = time.time()
+        while time.time() - tempo_inicial < timeout:
+            for usuario in self.usuarios:
+                ack_recebido = False
+                with self.mutex_recebimento:
+                    for _, id_mensagem, _ in self.mensagens_recebidas:
+                        if id_mensagem == str(self.id):
+                            ack_recebido = True
+                            break
+                if not ack_recebido:
+                    # Reenviar a mensagem
+                    with self.mutex_envio:
+                        for usuario_destino in self.usuarios:
+                            try:
+                                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario_destino, self.porta))
+                            except Exception as e:
+                                print(f"Erro ao reenviar mensagem para {usuario_destino}: {e}")
+            time.sleep(0.5)  # Esperar um curto período de tempo antes de verificar novamente
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
