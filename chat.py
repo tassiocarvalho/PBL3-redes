@@ -41,14 +41,18 @@ def receber_mensagens():
         # Decodificar a mensagem JSON
         mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
         
-        # Adicionar mensagem recebida à lista
-        mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
-        # Limpar a tela e exibir as mensagens recebidas
-        clear_screen()
-        print("Mensagens Recebidas:")
-        for endereco, mensagem in mensagens_recebidas:
-            print(f"{endereco}: {mensagem}")
-        print("\nDigite a mensagem a ser enviada:")
+        if mensagem_decodificada['mensagem'] == MENSAGEM_RETRANSMISSAO:
+            # Mensagem de solicitação de retransmissão, reenviar mensagens não confirmadas
+            reenviar_mensagens_nao_confirmadas(endereco[0])
+        else:
+            # Adicionar mensagem recebida à lista
+            mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+            # Limpar a tela e exibir as mensagens recebidas
+            clear_screen()
+            print("Mensagens Recebidas:")
+            for endereco, mensagem in mensagens_recebidas:
+                print(f"{endereco}: {mensagem}")
+            print("\nDigite a mensagem a ser enviada:")
         
         # Verificar se a mensagem recebida corresponde a uma mensagem enviada anteriormente e não confirmada
         for mensagem_enviada, tempo_envio in mensagens_enviadas.items():
@@ -81,17 +85,17 @@ def enviar_mensagem(mensagem, usuario=None):
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
-# Função para reenviar mensagens não confirmadas
-def reenviar_mensagens_nao_confirmadas():
+# Função para reenviar mensagens não confirmadas para um usuário específico
+def reenviar_mensagens_nao_confirmadas(usuario):
     for mensagem, tempo_envio in mensagens_enviadas.items():
         if time.time() - tempo_envio > timeout:
             # Mensagem não foi confirmada e o tempo limite foi atingido, reenviar
-            enviar_mensagem(mensagem)
+            enviar_mensagem(mensagem, usuario)
 
 # Função para enviar a mensagem de solicitação de retransmissão ao iniciar o programa
 def enviar_mensagem_retransmissao():
-    # Lista de usuários
-    usuarios_offline = usuarios
+    # Lista de usuários que não estão online no momento da inicialização
+    usuarios_offline = [usuario for usuario in usuarios if usuario not in [endereco[0] for endereco in mensagens_recebidas]]
 
     # Socket UDP para envio de mensagens
     sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -99,7 +103,7 @@ def enviar_mensagem_retransmissao():
     # Codificar a mensagem para JSON
     mensagem_json = json.dumps({'mensagem': MENSAGEM_RETRANSMISSAO})
 
-    # Enviar a mensagem de solicitação de retransmissão para cada usuário na lista de usuários
+    # Enviar a mensagem de solicitação de retransmissão para cada usuário offline
     for usuario in usuarios_offline:
         try:
             sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, porta))
