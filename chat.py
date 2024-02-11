@@ -34,12 +34,19 @@ def receber_mensagens():
         # Adicionar mensagem recebida à lista
         mensagem_recebida = mensagem_decodificada['mensagem']
         mensagens_recebidas.append((endereco, mensagem_recebida))
-        # Limpar a tela e exibir as mensagens recebidas
+
+# Função para exibir as mensagens recebidas na tela
+def exibir_mensagens():
+    while True:
+        # Limpar a tela
         clear_screen()
         print("Mensagens Recebidas:")
+        # Exibir as mensagens recebidas
         for endereco, mensagem in mensagens_recebidas:
             print(f"{endereco}: {mensagem}")
         print("\nDigite a mensagem a ser enviada:")
+        # Aguardar um curto intervalo antes de atualizar a tela
+        time.sleep(0.5)
 
 # Função para enviar mensagens
 def enviar_mensagem(mensagem, destinatario):
@@ -83,6 +90,11 @@ def enviar_mensagens():
 thread_recebimento = threading.Thread(target=receber_mensagens)
 thread_recebimento.daemon = True
 thread_recebimento.start()
+
+# Inicializar a thread para exibir mensagens
+thread_exibicao = threading.Thread(target=exibir_mensagens)
+thread_exibicao.daemon = True
+thread_exibicao.start()
 
 # Inicializar a thread para enviar mensagens
 thread_envio = threading.Thread(target=enviar_mensagens)
