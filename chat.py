@@ -43,7 +43,7 @@ def receber_mensagens():
             print(f"Mensagem recebida de {endereco}: {mensagem_recebida}")
             # Enviar ACK de volta ao remetente
             ack = {'tipo': 'ack', 'id': mensagem_decodificada['id']}
-            sock_recebimento.sendto(json.dumps(ack).encode('utf-8'), endereco)
+            sock_envio.sendto(json.dumps(ack).encode('utf-8'), endereco)
         elif mensagem_decodificada['tipo'] == 'ack':
             # Remover mensagem da lista de mensagens enviadas quando o ACK é recebido
             if mensagem_decodificada['id'] in mensagens_enviadas:
