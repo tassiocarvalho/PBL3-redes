@@ -43,7 +43,7 @@ def receber_mensagens():
         
         if mensagem_decodificada['mensagem'] == MENSAGEM_RETRANSMISSAO:
             # Mensagem de solicitação de retransmissão, reenviar mensagens não confirmadas
-            reenviar_mensagens_nao_confirmadas()
+            reenviar_mensagens_nao_confirmadas(endereco[0])
         else:
             # Adicionar mensagem recebida à lista
             mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
@@ -77,14 +77,14 @@ def enviar_mensagem(mensagem):
         except Exception as e:
             print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
-# Função para reenviar mensagens não confirmadas
-def reenviar_mensagens_nao_confirmadas():
+# Função para reenviar mensagens não confirmadas para um usuário específico
+def reenviar_mensagens_nao_confirmadas(usuario):
     for mensagem, tempo_envio in mensagens_enviadas.items():
         if time.time() - tempo_envio > timeout:
             # Mensagem não foi confirmada e o tempo limite foi atingido, reenviar
-            enviar_mensagem(mensagem)
+            enviar_mensagem(mensagem, usuario)
 
-# Enviar a mensagem de solicitação de retransmissão apenas para usuários que não estão online no momento da inicialização
+# Função para enviar a mensagem de solicitação de retransmissão ao iniciar o programa
 def enviar_mensagem_retransmissao():
     # Lista de usuários que não estão online no momento da inicialização
     usuarios_offline = [usuario for usuario in usuarios if usuario not in [endereco[0] for endereco in mensagens_recebidas]]
