@@ -8,19 +8,22 @@ import time
 
 class MensagemStorage:
     def __init__(self):
-        self.mensagens = []
+        self.historico_mensagens = {}
 
-    def adicionar_mensagem(self, mensagem):
-        """Adiciona uma mensagem ao armazenamento"""
-        self.mensagens.append(mensagem)
+    def adicionar_mensagem(self, usuario, mensagem):
+        """Adiciona uma mensagem ao histórico do usuário"""
+        if usuario in self.historico_mensagens:
+            self.historico_mensagens[usuario].append(mensagem)
+        else:
+            self.historico_mensagens[usuario] = [mensagem]
 
-    def obter_mensagens(self):
-        """Retorna todas as mensagens armazenadas"""
-        return self.mensagens
+    def obter_historico_mensagens(self, usuario):
+        """Retorna o histórico de mensagens de um usuário"""
+        return self.historico_mensagens.get(usuario, [])
 
 class ChatP2P:
     def __init__(self):
-        self.usuarios = ["192.168.1.5", "192.168.1.14"]
+        self.usuarios = ["192.168.1.9", "192.168.1.10"]
         self.porta = 5111
         self.mensagens_recebidas = []
         self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
@@ -30,18 +33,16 @@ class ChatP2P:
         self.id = uuid.uuid4()
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
         self.storage = MensagemStorage()
-        self.historico_mensagens = []
 
-    def enviar_mensagens_armazenadas_para_todos(self):
-        """Envia as mensagens armazenadas para todos os usuários"""
-        mensagens_armazenadas = self.storage.obter_mensagens()
-        for mensagem in mensagens_armazenadas:
+    def enviar_mensagens_armazenadas_para_usuario(self, usuario):
+        """Envia as mensagens armazenadas para um usuário específico"""
+        historico_mensagens = self.storage.obter_historico_mensagens(usuario)
+        for mensagem in historico_mensagens:
             mensagem_json = json.dumps(mensagem)  # Converta cada mensagem em JSON
-            for usuario in self.usuarios:
-                try:
-                    self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-                except Exception as e:
-                    print(f"Erro ao enviar mensagem para {usuario}: {e}")
+            try:
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+            except Exception as e:
+                print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
@@ -68,11 +69,12 @@ class ChatP2P:
             if mensagem_decodificada.get('tipo') == 'ACK' and mensagem_id:
                 self.tratar_ack(mensagem_id)
             else:
-                self.historico_mensagens.append((endereco, mensagem_decodificada['mensagem']))
+                self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+                self.storage.adicionar_mensagem(endereco[0], mensagem_decodificada)  # Armazenar a mensagem no histórico do remetente
                 self.enviar_ack(endereco, mensagem_id)
                 self.clear_screen()
                 print("Mensagens Recebidas:")
-                for endereco, mensagem in self.historico_mensagens:
+                for endereco, mensagem in self.mensagens_recebidas:
                     print(f"{endereco}: {mensagem}")
                 print("\nDigite a mensagem a ser enviada:")
 
@@ -92,7 +94,6 @@ class ChatP2P:
         """Função para enviar uma mensagem"""
         mensagem_id = str(uuid.uuid4())
         mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
-        self.storage.adicionar_mensagem({'id': mensagem_id, 'mensagem': mensagem})  # Armazenar a mensagem como objeto Python
         for usuario in self.usuarios:
             try:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
@@ -102,26 +103,26 @@ class ChatP2P:
         # Aguardar pelo ACK
         start_time = time.time()
         while time.time() - start_time < self.ack_timeout:
-            # Adicione a lógica para aguardar o ACK, se necessário
+            if not self.mensagem_enviada_pendente(mensagem_id):
+                break
             time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
         else:
             print("Timeout ao aguardar pelo ACK")
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
-        # Envie mensagens armazenadas para novos membros ao se conectar
-        self.enviar_mensagens_armazenadas_para_todos()
+        # Envie mensagens pendentes para novos membros ao se conectar
+        for usuario in self.usuarios:
+            self.enviar_mensagens_armazenadas_para_usuario(usuario)
 
-        # Inicie a thread para receber mensagens
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
         thread_recebimento.start()
 
-        # Aguarde entrada do usuário e envie mensagens
         while True:
             mensagem = input()
             self.enviar_mensagem(mensagem)
 
-# Inicie o chat
+# Iniciar o chat
 chat = ChatP2P()
 chat.iniciar_chat()
