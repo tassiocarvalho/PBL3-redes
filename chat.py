@@ -28,6 +28,7 @@ class ChatP2P:
         self.id = uuid.uuid4()
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
         self.storage = MensagemStorage()
+        self.novos_membros = []  # Lista para rastrear novos membros
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
@@ -98,8 +99,8 @@ class ChatP2P:
         """Método para iniciar o chat"""
         # Envie mensagens pendentes para novos membros ao se conectar
         for mensagem_json in self.storage.obter_mensagens():
-            for usuario in self.usuarios:
-                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+            for membro in self.novos_membros:
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (membro, self.porta))
 
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
@@ -108,6 +109,10 @@ class ChatP2P:
         while True:
             mensagem = input()
             self.enviar_mensagem(mensagem)
+
+    def adicionar_novo_membro(self, endereco):
+        """Método para adicionar um novo membro"""
+        self.novos_membros.append(endereco)
 
 # Iniciar o chat
 chat = ChatP2P()
