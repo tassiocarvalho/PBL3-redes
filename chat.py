@@ -18,7 +18,7 @@ class MensagemStorage:
 
 class ChatP2P:
     def __init__(self):
-        self.usuarios = ["192.168.1.5", "192.168.1.14"]
+        self.usuarios = ["192.168.1.5", "192.168.1.14"]  # Armazenar os endereços IP dos usuários conectados
         self.porta = 5111
         self.mensagens_recebidas = []
         self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
@@ -28,7 +28,6 @@ class ChatP2P:
         self.id = uuid.uuid4()
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
         self.storage = MensagemStorage()
-        self.novos_membros = []  # Lista para rastrear novos membros
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
@@ -97,11 +96,6 @@ class ChatP2P:
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
-        # Envie mensagens pendentes para novos membros ao se conectar
-        for mensagem_json in self.storage.obter_mensagens():
-            for membro in self.novos_membros:
-                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (membro, self.porta))
-
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
         thread_recebimento.start()
@@ -110,9 +104,13 @@ class ChatP2P:
             mensagem = input()
             self.enviar_mensagem(mensagem)
 
-    def adicionar_novo_membro(self, endereco):
-        """Método para adicionar um novo membro"""
-        self.novos_membros.append(endereco)
+    def adicionar_usuario(self, endereco):
+        """Método para adicionar um novo usuário"""
+        if endereco not in self.usuarios:
+            self.usuarios.append(endereco)
+            # Envie todas as mensagens armazenadas no histórico para o novo usuário
+            for mensagem_json in self.storage.obter_mensagens():
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (endereco, self.porta))
 
 # Iniciar o chat
 chat = ChatP2P()
