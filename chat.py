@@ -30,18 +30,19 @@ class ChatP2P:
         self.id = uuid.uuid4()
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
         self.storage = MensagemStorage()
+        self.historico_mensagens = []
 
     def enviar_mensagens_armazenadas_para_todos(self):
         """Envia as mensagens armazenadas para todos os usuários"""
         mensagens_armazenadas = self.storage.obter_mensagens()
         for mensagem in mensagens_armazenadas:
-            mensagem_json = json.dumps(mensagem)
+            mensagem_json = json.dumps(mensagem)  # Converta cada mensagem em JSON
             for usuario in self.usuarios:
                 try:
                     self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
                 except Exception as e:
                     print(f"Erro ao enviar mensagem para {usuario}: {e}")
-                    
+
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
         if platform.system() == "Windows":
@@ -67,11 +68,11 @@ class ChatP2P:
             if mensagem_decodificada.get('tipo') == 'ACK' and mensagem_id:
                 self.tratar_ack(mensagem_id)
             else:
-                self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+                self.historico_mensagens.append((endereco, mensagem_decodificada['mensagem']))
                 self.enviar_ack(endereco, mensagem_id)
                 self.clear_screen()
                 print("Mensagens Recebidas:")
-                for endereco, mensagem in self.mensagens_recebidas:
+                for endereco, mensagem in self.historico_mensagens:
                     print(f"{endereco}: {mensagem}")
                 print("\nDigite a mensagem a ser enviada:")
 
@@ -101,25 +102,26 @@ class ChatP2P:
         # Aguardar pelo ACK
         start_time = time.time()
         while time.time() - start_time < self.ack_timeout:
-            if not self.mensagem_enviada_pendente(mensagem_id):
-                break
+            # Adicione a lógica para aguardar o ACK, se necessário
             time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
         else:
             print("Timeout ao aguardar pelo ACK")
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
-        # Envie mensagens pendentes para novos membros ao se conectar
+        # Envie mensagens armazenadas para novos membros ao se conectar
         self.enviar_mensagens_armazenadas_para_todos()
 
+        # Inicie a thread para receber mensagens
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
         thread_recebimento.start()
 
+        # Aguarde entrada do usuário e envie mensagens
         while True:
             mensagem = input()
             self.enviar_mensagem(mensagem)
 
-# Iniciar o chat
+# Inicie o chat
 chat = ChatP2P()
 chat.iniciar_chat()
