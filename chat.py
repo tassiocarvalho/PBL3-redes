@@ -10,9 +10,9 @@ class MensagemStorage:
     def __init__(self):
         self.mensagens = []
 
-    def adicionar_mensagem(self, mensagem_id, mensagem_conteudo):
+    def adicionar_mensagem(self, mensagem):
         """Adiciona uma mensagem ao armazenamento"""
-        self.mensagens.append((mensagem_id, mensagem_conteudo))
+        self.mensagens.append(mensagem)
 
     def obter_mensagens(self):
         """Retorna todas as mensagens armazenadas"""
@@ -80,7 +80,7 @@ class ChatP2P:
         """Função para enviar uma mensagem"""
         mensagem_id = str(uuid.uuid4())
         mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
-        self.storage.adicionar_mensagem(mensagem_id, mensagem)  # Armazenar a mensagem
+        self.storage.adicionar_mensagem({'id': mensagem_id, 'mensagem': mensagem})  # Armazenar a mensagem como objeto Python
         for usuario in self.usuarios:
             try:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
