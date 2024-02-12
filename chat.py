@@ -31,6 +31,17 @@ class ChatP2P:
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
         self.storage = MensagemStorage()
 
+    def enviar_mensagens_armazenadas_para_todos(self):
+        """Envia as mensagens armazenadas para todos os usuários"""
+        mensagens_armazenadas = self.storage.obter_mensagens()
+        for mensagem in mensagens_armazenadas:
+            mensagem_json = json.dumps(mensagem)
+            for usuario in self.usuarios:
+                try:
+                    self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                except Exception as e:
+                    print(f"Erro ao enviar mensagem para {usuario}: {e}")
+                    
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
         if platform.system() == "Windows":
@@ -99,9 +110,7 @@ class ChatP2P:
     def iniciar_chat(self):
         """Método para iniciar o chat"""
         # Envie mensagens pendentes para novos membros ao se conectar
-        for mensagem_json in self.storage.obter_mensagens():
-            for usuario in self.usuarios:
-                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+        self.enviar_mensagens_armazenadas_para_todos()
 
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
