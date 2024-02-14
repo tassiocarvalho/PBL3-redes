@@ -93,33 +93,36 @@ class ChatP2P:
 
     def enviar_mensagem(self, mensagem):
         """Função para enviar uma mensagem"""
-        mensagem_id = str(uuid.uuid4())
-        mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
-        for usuario in self.usuarios:
-            try:
-                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-            except Exception as e:
-                print(f"Erro ao enviar mensagem para {usuario}: {e}")
-        
-        # Aguardar pelo ACK
-        start_time = time.time()
-        while time.time() - start_time < self.ack_timeout:
-            if not self.mensagem_enviada_pendente(mensagem_id):
-                break
-            time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
-        else:
-            print(f"Timeout ao aguardar pelo ACK da mensagem {mensagem_id}. Retransmitindo...")
-
-            # Retransmitir mensagem
-            while time.time() - start_time < self.ack_timeout + self.retransmitir_timeout:
-                for usuario in self.usuarios:
-                    try:
-                        self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-                    except Exception as e:
-                        print(f"Erro ao retransmitir mensagem para {usuario}: {e}")
-                time.sleep(0.1)  # Esperar um pouco antes de retransmitir
+        if mensagem.strip():  # Verifica se a mensagem não está vazia
+            mensagem_id = str(uuid.uuid4())
+            mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
+            for usuario in self.usuarios:
+                try:
+                    self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                except Exception as e:
+                    print(f"Erro ao enviar mensagem para {usuario}: {e}")
+            
+            # Aguardar pelo ACK
+            start_time = time.time()
+            while time.time() - start_time < self.ack_timeout:
+                if not self.mensagem_enviada_pendente(mensagem_id):
+                    break
+                time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
             else:
-                print(f"Timeout de retransmissão alcançado para a mensagem {mensagem_id}. Mensagem perdida.")
+                print(f"Timeout ao aguardar pelo ACK da mensagem {mensagem_id}. Retransmitindo...")
+
+                # Retransmitir mensagem
+                while time.time() - start_time < self.ack_timeout + self.retransmitir_timeout:
+                    for usuario in self.usuarios:
+                        try:
+                            self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                        except Exception as e:
+                            print(f"Erro ao retransmitir mensagem para {usuario}: {e}")
+                    time.sleep(0.1)  # Esperar um pouco antes de retransmitir
+                else:
+                    print(f"Timeout de retransmissão alcançado para a mensagem {mensagem_id}. Mensagem perdida.")
+        else:
+            print("Mensagem vazia. Nada foi enviado.")
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
