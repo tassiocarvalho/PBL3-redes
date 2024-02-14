@@ -23,7 +23,7 @@ class MensagemStorage:
 
 class ChatP2P:
     def __init__(self):
-        self.usuarios = ["192.168.1.9", "192.168.1.10"]
+        self.usuarios = ["192.168.1.17", "192.168.1.19"]
         self.porta = 5111
         self.mensagens_recebidas = []
         self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
@@ -32,6 +32,7 @@ class ChatP2P:
         self.sock_envio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.id = uuid.uuid4()
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
+        self.retransmitir_timeout = 2  # Tempo limite para retransmitir uma mensagem não confirmada
         self.storage = MensagemStorage()
 
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
@@ -99,7 +100,7 @@ class ChatP2P:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
-
+        
         # Aguardar pelo ACK
         start_time = time.time()
         while time.time() - start_time < self.ack_timeout:
@@ -107,7 +108,18 @@ class ChatP2P:
                 break
             time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
         else:
-            print("Timeout ao aguardar pelo ACK")
+            print(f"Timeout ao aguardar pelo ACK da mensagem {mensagem_id}. Retransmitindo...")
+
+            # Retransmitir mensagem
+            while time.time() - start_time < self.ack_timeout + self.retransmitir_timeout:
+                for usuario in self.usuarios:
+                    try:
+                        self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                    except Exception as e:
+                        print(f"Erro ao retransmitir mensagem para {usuario}: {e}")
+                time.sleep(0.1)  # Esperar um pouco antes de retransmitir
+            else:
+                print(f"Timeout de retransmissão alcançado para a mensagem {mensagem_id}. Mensagem perdida.")
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
