@@ -5,6 +5,7 @@ import platform
 import json
 import uuid
 import time
+from relogiolamport import RelogioLamport  # Importando a classe RelogioLamport
 
 class MensagemStorage:
     def __init__(self):
@@ -34,6 +35,7 @@ class ChatP2P:
         self.ack_timeout = 5  # Tempo limite para esperar um ACK em segundos
         self.retransmitir_timeout = 2  # Tempo limite para retransmitir uma mensagem não confirmada
         self.storage = MensagemStorage()
+        self.relogio_lamport = RelogioLamport()  # Criando uma instância do RelogioLamport
 
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
@@ -72,6 +74,7 @@ class ChatP2P:
             else:
                 self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
                 self.storage.adicionar_mensagem(endereco[0], mensagem_decodificada)  # Armazenar a mensagem no histórico do remetente
+                self.relogio_lamport.sincronizar(mensagem_decodificada.get('relogio_lamport', 0))  # Sincronizar relógio de Lamport
                 self.enviar_ack(endereco, mensagem_id)
                 self.clear_screen()
                 print("Mensagens Recebidas:")
@@ -88,14 +91,15 @@ class ChatP2P:
 
     def enviar_ack(self, endereco, mensagem_id):
         """Função para enviar um ACK"""
-        ack = json.dumps({'id': str(self.id), 'tipo': 'ACK', 'mensagem_id': mensagem_id})
+        ack = json.dumps({'id': str(self.id), 'tipo': 'ACK', 'mensagem_id': mensagem_id, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Enviar o tempo do relógio de Lamport junto com o ACK
         self.sock_envio.sendto(ack.encode('utf-8'), endereco)
 
     def enviar_mensagem(self, mensagem):
         """Função para enviar uma mensagem"""
         if mensagem.strip():  # Verifica se a mensagem não está vazia
             mensagem_id = str(uuid.uuid4())
-            mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem})
+            mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Incluir o tempo do relógio de Lamport na mensagem
+            self.relogio_lamport.incrementar()  # Incrementar o relógio de Lamport antes de enviar a mensagem
             for usuario in self.usuarios:
                 try:
                     self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
