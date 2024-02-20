@@ -24,7 +24,7 @@ class MensagemStorage:
 
 class ChatP2P:
     def __init__(self):
-        self.usuarios = ["192.168.1.24", "192.168.1.21"]
+        self.usuarios = ["172.16.103.243", "172.16.103.9"]
         self.porta = 5111
         self.mensagens_recebidas = []
         self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
@@ -64,7 +64,12 @@ class ChatP2P:
     def receber_mensagens(self):
         """Função para receber mensagens"""
         while True:
-            mensagem, endereco = self.sock_recebimento.recvfrom(1024)
+            try:
+                mensagem, endereco = self.sock_recebimento.recvfrom(4096)  # Aumentando o tamanho do buffer para evitar o erro
+            except OSError as e:
+                print(f"Erro ao receber mensagem: {e}")
+                continue
+
             mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
             mensagem_id = mensagem_decodificada.get('id', None)
 
