@@ -8,6 +8,23 @@ import uuid
 import time
 from relogiolamport import RelogioLamport  # Importando a classe RelogioLamport
 
+def get_local_ip_address(target='10.255.255.255'):
+    """
+    Função para obter o endereço IP local da máquina.
+    Conecta-se a um endereço IP destino para determinar o endereço IP apropriado.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            # Não é necessário enviar dados, apenas iniciar a conexão
+            s.connect((target, 1))
+            IP = s.getsockname()[0]
+        except Exception:
+            IP = '127.0.0.1'
+    return IP
+host = get_local_ip_address()
+
+print(f"Endereço IP do host: {host}")
+
 class MensagemStorage:
     def __init__(self):
         self.historico_mensagens = {}

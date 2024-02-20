@@ -7,6 +7,22 @@ import uuid
 import time
 from relogiolamport import RelogioLamport  # Importando a classe RelogioLamport
 
+def get_local_ip_address():
+    """
+    Função para obter o endereço IP local da máquina hospedeira.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            # Conecta-se a um endereço IP externo para determinar o endereço IP local
+            s.connect(('8.8.8.8', 80))
+            ip_address = s.getsockname()[0]
+        except Exception:
+            ip_address = '127.0.0.1'
+    return ip_address
+
+host = get_local_ip_address()
+print("Endereço IP do host:", host)
+
 class MensagemStorage:
     def __init__(self):
         self.historico_mensagens = {}
@@ -24,7 +40,7 @@ class MensagemStorage:
 
 class ChatP2P:
     def __init__(self):
-        self.usuarios = ["172.16.103.243", "172.16.103.9"]
+        self.usuarios = ["172.16.103.243", "172.16.103.9", "172.16.103.10"]
         self.porta = 5111
         self.mensagens_recebidas = []
         self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
