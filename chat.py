@@ -71,6 +71,18 @@ class ChatP2P:
         else:
             print("Timeout ao aguardar pelo histórico de mensagens.")
 
+    def enviar_historico_mensagens(self, endereco, mensagem):
+        """Envia o histórico de mensagens para o endereço especificado"""
+        usuario = endereco[0]
+        historico_mensagens = self.storage.obter_historico_mensagens(usuario)
+        mensagem_historico = {'tipo': 'HISTORICO', 'historico': historico_mensagens}
+        mensagem_json = json.dumps(mensagem_historico)
+        try:
+            self.sock_envio.sendto(mensagem_json.encode('utf-8'), endereco)
+            print("Histórico de mensagens enviado para", endereco)
+        except Exception as e:
+            print(f"Erro ao enviar histórico de mensagens para {endereco}: {e}")
+
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
         historico_mensagens = self.storage.obter_historico_mensagens(usuario)
@@ -106,20 +118,28 @@ class ChatP2P:
 
             mensagem_decodificada = json.loads(mensagem.decode('utf-8'))
             mensagem_id = mensagem_decodificada.get('id', None)
+            tipo_mensagem = mensagem_decodificada.get('tipo', None)
 
             # Verificar se a mensagem é um ACK
-            if mensagem_decodificada.get('tipo') == 'ACK' and mensagem_id:
+            if tipo_mensagem == 'ACK' and mensagem_id:
                 self.tratar_ack(mensagem_id)
+            elif tipo_mensagem == 'SOLICITACAO_HISTORICO':
+                # Lógica para responder à solicitação de histórico de mensagens
+                self.enviar_historico_mensagens(endereco, mensagem_decodificada)
             else:
-                self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
-                self.storage.adicionar_mensagem(endereco[0], mensagem_decodificada)  # Armazenar a mensagem no histórico do remetente
-                self.relogio_lamport.sincronizar(mensagem_decodificada.get('relogio_lamport', 0))  # Sincronizar relógio de Lamport
-                self.enviar_ack(endereco, mensagem_id)
-                self.clear_screen()
-                print("Mensagens Recebidas:")
-                for endereco, mensagem in self.mensagens_recebidas:
-                    print(f"{endereco}: {mensagem}")
-                print("\nDigite a mensagem a ser enviada:")
+                # Processar a mensagem recebida
+                if 'mensagem' in mensagem_decodificada:  # Verificar se a chave 'mensagem' está presente
+                    self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+                    self.storage.adicionar_mensagem(endereco[0], mensagem_decodificada)  # Armazenar a mensagem no histórico do remetente
+                    self.relogio_lamport.sincronizar(mensagem_decodificada.get('relogio_lamport', 0))  # Sincronizar relógio de Lamport
+                    self.enviar_ack(endereco, mensagem_id)
+                    self.clear_screen()
+                    print("Mensagens Recebidas:")
+                    for endereco, mensagem in self.mensagens_recebidas:
+                        print(f"{endereco}: {mensagem}")
+                    print("\nDigite a mensagem a ser enviada:")
+                else:
+                    print("Mensagem recebida não possui o campo 'mensagem'.")
 
     def tratar_ack(self, mensagem_id):
         """Função para tratar o recebimento de um ACK"""
