@@ -53,6 +53,24 @@ class ChatP2P:
         self.storage = MensagemStorage()
         self.relogio_lamport = RelogioLamport()  # Criando uma instância do RelogioLamport
 
+    def sincronizar_com_usuario(self, usuario_sincronizacao):
+        """Método para sincronizar com um usuário específico"""
+        mensagem_solicitacao = json.dumps({'tipo': 'SOLICITACAO_HISTORICO', 'id': str(self.id)})
+        self.sock_envio.sendto(mensagem_solicitacao.encode('utf-8'), (usuario_sincronizacao, self.porta))
+        print("Solicitação de histórico enviada.")
+
+        # Aguardar pelo histórico de mensagens
+        start_time = time.time()
+        while time.time() - start_time < self.ack_timeout:
+            if usuario_sincronizacao in self.storage.historico_mensagens:
+                print("Histórico recebido:")
+                for mensagem in self.storage.historico_mensagens[usuario_sincronizacao]:
+                    print(mensagem)
+                break
+            time.sleep(0.1)
+        else:
+            print("Timeout ao aguardar pelo histórico de mensagens.")
+
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
         historico_mensagens = self.storage.obter_historico_mensagens(usuario)
@@ -172,6 +190,8 @@ class ChatP2P:
         print(f"Sincronizando com {usuario_sincronizacao}...")
         time.sleep(15)
         print("Sincronização concluída. Iniciando o chat.")
+
+        self.sincronizar_com_usuario(usuario_sincronizacao)
 
         # Envie mensagens pendentes apenas para o usuário selecionado
         self.enviar_mensagens_armazenadas_para_usuario(usuario_sincronizacao)
