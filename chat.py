@@ -41,7 +41,9 @@ class MensagemStorage:
 
 class ChatP2P:
     def __init__(self):
-        self.usuarios = ["172.16.103.243", "172.16.103.9", "172.16.103.10"]
+        self.usuarios = ["172.16.103.243", "172.16.103.1", "172.16.103.2", "172.16.103.3", "172.16.103.4",
+        "172.16.103.5", "172.16.103.6","172.16.103.7", "172.16.103.8","172.16.103.9", "172.16.103.10", 
+        "172.16.103.11","172.16.103.12", "172.16.103.13", "172.16.103.14",]
         self.porta = 5111
         self.mensagens_recebidas = []
         self.mensagens_enviadas = []  # Adicionando inicialização da lista de mensagens enviadas
@@ -210,7 +212,7 @@ class ChatP2P:
     def iniciar_chat(self):
         """Método para iniciar o chat"""
         # Selecionar o usuário para sincronização
-        print("Usuários online:")
+        print("Escolha um usuário que esteja online, se não há nenhum escolha a si mesmo")
         for i, usuario in enumerate(self.usuarios, 1):
             print(f"{i}. {usuario}")
         usuario_selecionado = int(input("Selecione o número do usuário para sincronização: "))
