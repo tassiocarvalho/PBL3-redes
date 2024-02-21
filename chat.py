@@ -84,18 +84,17 @@ class ChatP2P:
         except Exception as e:
             print(f"Erro ao enviar histórico de mensagens para {endereco}: {e}")
 
-    def enviar_historico_mensagens(self, endereco, mensagem):
-        """Envia o histórico de mensagens para o endereço especificado"""
+    def enviar_historico_completo(self, endereco, mensagem):
+        """Envia todo o histórico de mensagens para o endereço especificado"""
         usuario = endereco[0]
         historico_mensagens = self.storage.historico_mensagens  # Obter todo o histórico de mensagens
-        mensagem_historico = {'tipo': 'HISTORICO', 'historico': historico_mensagens.get(usuario, [])}
+        mensagem_historico = {'tipo': 'HISTORICO_COMPLETO', 'historico': historico_mensagens.get(usuario, [])}
         mensagem_json = json.dumps(mensagem_historico)
         try:
             self.sock_envio.sendto(mensagem_json.encode('utf-8'), endereco)
-            print("Histórico de mensagens enviado para", endereco)
+            print("Histórico completo de mensagens enviado para", endereco)
         except Exception as e:
-            print(f"Erro ao enviar histórico de mensagens para {endereco}: {e}")
-
+            print(f"Erro ao enviar histórico completo de mensagens para {endereco}: {e}")
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
@@ -129,7 +128,7 @@ class ChatP2P:
                 self.tratar_ack(mensagem_id)
             elif tipo_mensagem == 'SOLICITACAO_HISTORICO':
                 # Lógica para responder à solicitação de histórico de mensagens
-                self.enviar_historico_mensagens(endereco, mensagem_decodificada)
+                self.enviar_historico_completo(endereco, mensagem_decodificada)
             else:
                 # Processar a mensagem recebida
                 if 'mensagem' in mensagem_decodificada:  # Verificar se a chave 'mensagem' está presente
