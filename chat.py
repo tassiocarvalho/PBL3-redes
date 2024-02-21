@@ -52,6 +52,7 @@ class ChatP2P:
         self.retransmitir_timeout = 2  # Tempo limite para retransmitir uma mensagem não confirmada
         self.storage = MensagemStorage()
         self.relogio_lamport = RelogioLamport()  # Criando uma instância do RelogioLamport
+        self.mensagens_pendentes = {}
 
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
@@ -109,6 +110,26 @@ class ChatP2P:
             if mensagem_enviada_id == mensagem_id:
                 del self.mensagens_enviadas[index]
                 break
+    
+    def verificar_disponibilidade_usuarios(self):
+        """Verifica periodicamente a disponibilidade dos usuários"""
+        while True:
+            for usuario in self.usuarios:
+                if self.usuario_esta_disponivel(usuario):
+                    self.retransmitir_mensagens_pendentes(usuario)
+            time.sleep(10)  # verificar a cada 10 segundos
+
+    def usuario_esta_disponivel(self, usuario):
+        """Verifica se um usuário está disponível"""
+        # Implemente sua lógica para verificar a disponibilidade do usuário aqui
+        return True  # Supondo que todos os usuários estão disponíveis para simplificar o exemplo
+
+    def retransmitir_mensagens_pendentes(self, usuario):
+        """Retransmite mensagens pendentes para um usuário"""
+        if usuario in self.mensagens_pendentes:
+            for mensagem in self.mensagens_pendentes[usuario]:
+                self.enviar_mensagem(mensagem)
+            del self.mensagens_pendentes[usuario]
 
     def enviar_ack(self, endereco, mensagem_id):
         """Função para enviar um ACK"""
@@ -151,7 +172,10 @@ class ChatP2P:
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
-        # Envie mensagens pendentes para novos membros ao se conectar
+        thread_verificacao = threading.Thread(target=self.verificar_disponibilidade_usuarios)
+        thread_verificacao.daemon = True
+        thread_verificacao.start()
+
         for usuario in self.usuarios:
             self.enviar_mensagens_armazenadas_para_usuario(usuario)
 
