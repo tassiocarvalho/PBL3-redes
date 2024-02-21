@@ -218,9 +218,9 @@ class ChatP2P:
         usuario_selecionado = int(input("Selecione o número do usuário para sincronização: "))
         usuario_sincronizacao = self.usuarios[usuario_selecionado - 1]
 
-        # Sincronização de 15 segundos com o usuário selecionado
+        # Sincronização de 5 segundos com o usuário selecionado
         print(f"Sincronizando com {usuario_sincronizacao}...")
-        time.sleep(15)
+        time.sleep(5)
         print("Sincronização concluída. Iniciando o chat.")
 
         self.sincronizar_com_usuario(usuario_sincronizacao)
