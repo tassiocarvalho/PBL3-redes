@@ -53,21 +53,6 @@ class ChatP2P:
         self.storage = MensagemStorage()
         self.relogio_lamport = RelogioLamport()  # Criando uma instância do RelogioLamport
 
-        # Thread para verificar se os IPs dos usuários estão online
-        self.thread_check_online = threading.Thread(target=self.check_usuarios_online)
-        self.thread_check_online.daemon = True
-        self.thread_check_online.start()
-
-    def check_usuarios_online(self):
-        while True:
-            for usuario in self.usuarios:
-                try:
-                    socket.create_connection((usuario, self.porta), timeout=2)
-                    print(f"Usuário {usuario} está online")
-                except Exception as e:
-                    print(f"Usuário {usuario} está offline")
-            time.sleep(10)  # Verificar a cada 10 segundos
-
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
         historico_mensagens = self.storage.obter_historico_mensagens(usuario)
