@@ -138,6 +138,12 @@ class ChatP2P:
                     for endereco, mensagem in self.mensagens_recebidas:
                         print(f"{endereco}: {mensagem}")
                     print("\nDigite a mensagem a ser enviada:")
+                elif tipo_mensagem == 'HISTORICO':
+                    # Receber e armazenar o histórico de mensagens
+                    historico = mensagem_decodificada.get('historico', [])
+                    for msg in historico:
+                        self.storage.adicionar_mensagem(endereco[0], msg)
+                    print("Histórico de mensagens recebido de", endereco)
                 else:
                     print("Mensagem recebida não possui o campo 'mensagem'.")
 
