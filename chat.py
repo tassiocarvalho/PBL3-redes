@@ -34,15 +34,9 @@ class MensagemStorage:
         else:
             self.historico_mensagens[usuario] = [mensagem]
 
-    def obter_mensagens_pendentes(self, usuario):
-        """Retorna as mensagens pendentes para um usuário"""
+    def obter_historico_mensagens(self, usuario):
+        """Retorna o histórico de mensagens do usuário"""
         return self.historico_mensagens.get(usuario, [])
-
-    def limpar_mensagens(self, usuario):
-        """Limpa as mensagens pendentes para um usuário"""
-        if usuario in self.historico_mensagens:
-            del self.historico_mensagens[usuario]
-
 
 class ChatP2P:
     def __init__(self):
@@ -157,8 +151,8 @@ class ChatP2P:
 
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
-        mensagens_pendentes = self.storage.obter_mensagens_pendentes(usuario)
-        for mensagem in mensagens_pendentes:
+        historico_mensagens = self.storage.obter_historico_mensagens(usuario)
+        for mensagem in historico_mensagens:
             mensagem_json = json.dumps(mensagem)  # Converta cada mensagem em JSON
             try:
                 self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
