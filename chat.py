@@ -19,6 +19,7 @@ def get_local_ip_address():
         except Exception:
             ip_address = '127.0.0.1'
     return ip_address
+    #up
 
 host = get_local_ip_address()
 print("Endereço IP do host:", host)
