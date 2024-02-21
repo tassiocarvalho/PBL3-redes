@@ -165,22 +165,29 @@ class ChatP2P:
             except Exception as e:
                 print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
-
     def iniciar_chat(self):
         """Método para iniciar o chat"""
-        # Sincronização de 15 segundos ao iniciar o chat
-        print("Sincronizando...")
+        # Selecionar o usuário para sincronização
+        print("Usuários online:")
+        for i, usuario in enumerate(self.usuarios, 1):
+            print(f"{i}. {usuario}")
+        usuario_selecionado = int(input("Selecione o número do usuário para sincronização: "))
+        usuario_sincronizacao = self.usuarios[usuario_selecionado - 1]
+
+        # Sincronização de 15 segundos com o usuário selecionado
+        print(f"Sincronizando com {usuario_sincronizacao}...")
         time.sleep(15)
         print("Sincronização concluída. Iniciando o chat.")
 
-        # Envie mensagens pendentes para novos membros ao se conectar
-        for usuario in self.usuarios:
-            self.enviar_mensagens_armazenadas_para_usuario(usuario)
+        # Envie mensagens pendentes apenas para o usuário selecionado
+        self.enviar_mensagens_armazenadas_para_usuario(usuario_sincronizacao)
 
+        # Iniciar a thread de recebimento de mensagens
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
         thread_recebimento.daemon = True
         thread_recebimento.start()
 
+        # Loop para enviar mensagens
         while True:
             mensagem = input()
             self.enviar_mensagem(mensagem)
