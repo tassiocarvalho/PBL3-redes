@@ -25,15 +25,18 @@ print("Endereço IP do host:", host)
 
 class MensagemStorage:
     def __init__(self):
-        self.historico_mensagens = []
+        self.historico_mensagens = {}
 
-    def adicionar_mensagem(self, mensagem):
-        """Adiciona uma mensagem ao histórico"""
-        self.historico_mensagens.append(mensagem)
+    def adicionar_mensagem(self, usuario, mensagem):
+        """Adiciona uma mensagem ao histórico do usuário"""
+        if usuario in self.historico_mensagens:
+            self.historico_mensagens[usuario].append(mensagem)
+        else:
+            self.historico_mensagens[usuario] = [mensagem]
 
-    def obter_historico_mensagens(self):
-        """Retorna o histórico de mensagens"""
-        return self.historico_mensagens
+    def obter_historico_mensagens(self, usuario):
+        """Retorna o histórico de mensagens do usuário"""
+        return self.historico_mensagens.get(usuario, [])
 
 class ChatP2P:
     def __init__(self):
@@ -61,16 +64,18 @@ class ChatP2P:
         while time.time() - start_time < self.ack_timeout:
             if usuario_sincronizacao in self.storage.historico_mensagens:
                 print("Histórico recebido:")
-                for mensagem in self.storage.obter_historico_mensagens():
+                for mensagem in self.storage.historico_mensagens[usuario_sincronizacao]:
                     print(mensagem)
                 break
             time.sleep(0.1)
         else:
             print("Timeout ao aguardar pelo histórico de mensagens para", usuario_sincronizacao)
 
+
     def enviar_historico_mensagens(self, endereco, mensagem):
         """Envia o histórico de mensagens para o endereço especificado"""
-        historico_mensagens = self.storage.obter_historico_mensagens()
+        usuario = endereco[0]
+        historico_mensagens = self.storage.obter_historico_mensagens(usuario)
         mensagem_historico = {'tipo': 'HISTORICO', 'historico': historico_mensagens}
         mensagem_json = json.dumps(mensagem_historico)
         try:
@@ -81,8 +86,9 @@ class ChatP2P:
 
     def enviar_historico_completo(self, endereco, mensagem):
         """Envia todo o histórico de mensagens para o endereço especificado"""
-        historico_mensagens = self.storage.obter_historico_mensagens()
-        mensagem_historico = {'tipo': 'HISTORICO_COMPLETO', 'historico': historico_mensagens}
+        usuario = endereco[0]
+        historico_mensagens = self.storage.historico_mensagens  # Obter todo o histórico de mensagens
+        mensagem_historico = {'tipo': 'HISTORICO_COMPLETO', 'historico': historico_mensagens.get(usuario, [])}
         mensagem_json = json.dumps(mensagem_historico)
         try:
             self.sock_envio.sendto(mensagem_json.encode('utf-8'), endereco)
@@ -96,6 +102,13 @@ class ChatP2P:
             os.system('cls')
         else:
             os.system('clear')
+
+    def mensagem_enviada_pendente(self, mensagem_id):
+        """Verifica se uma mensagem enviada ainda está pendente"""
+        for mensagem_enviada_id, _ in self.mensagens_enviadas:
+            if mensagem_enviada_id == mensagem_id:
+                return True
+        return False
 
     def receber_mensagens(self):
         """Função para receber mensagens"""
@@ -119,27 +132,27 @@ class ChatP2P:
             else:
                 # Processar a mensagem recebida
                 if 'mensagem' in mensagem_decodificada:  # Verificar se a chave 'mensagem' está presente
-                    self.mensagens_recebidas.append(mensagem_decodificada['mensagem'])
-                    self.storage.adicionar_mensagem(mensagem_decodificada['mensagem'])  # Armazenar a mensagem no histórico
+                    self.mensagens_recebidas.append((endereco, mensagem_decodificada['mensagem']))
+                    self.storage.adicionar_mensagem(endereco[0], mensagem_decodificada)  # Armazenar a mensagem no histórico do remetente
                     self.relogio_lamport.sincronizar(mensagem_decodificada.get('relogio_lamport', 0))  # Sincronizar relógio de Lamport
                     self.enviar_ack(endereco, mensagem_id)
                     self.clear_screen()
                     print("Mensagens Recebidas:")
-                    for mensagem in self.mensagens_recebidas:
-                        print(mensagem)
+                    for endereco, mensagem in self.mensagens_recebidas:
+                        print(f"{endereco}: {mensagem}")
                     print("\nDigite a mensagem a ser enviada:")
                 elif tipo_mensagem == 'HISTORICO':
                     # Receber e armazenar o histórico de mensagens
                     historico = mensagem_decodificada.get('historico', [])
                     for msg in historico:
-                        self.storage.adicionar_mensagem(msg)
+                        self.storage.adicionar_mensagem(endereco[0], msg)
                     print("Histórico de mensagens recebido de", endereco)
                 else:
                     print("Mensagem recebida não possui o campo 'mensagem'.")
 
     def tratar_ack(self, mensagem_id):
         """Função para tratar o recebimento de um ACK"""
-        for index, mensagem_enviada_id in enumerate(self.mensagens_enviadas):
+        for index, (mensagem_enviada_id, _) in enumerate(self.mensagens_enviadas):
             if mensagem_enviada_id == mensagem_id:
                 del self.mensagens_enviadas[index]
                 break
@@ -183,12 +196,15 @@ class ChatP2P:
         else:
             print("Mensagem vazia. Nada foi enviado.")
 
-    def mensagem_enviada_pendente(self, mensagem_id):
-        """Verifica se uma mensagem enviada ainda está pendente"""
-        for mensagem_enviada_id in self.mensagens_enviadas:
-            if mensagem_enviada_id == mensagem_id:
-                return True
-        return False
+    def enviar_mensagens_armazenadas_para_usuario(self, usuario):
+        """Envia as mensagens armazenadas para um usuário específico"""
+        historico_mensagens = self.storage.obter_historico_mensagens(usuario)
+        for mensagem in historico_mensagens:
+            mensagem_json = json.dumps(mensagem)  # Converta cada mensagem em JSON
+            try:
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+            except Exception as e:
+                print(f"Erro ao enviar mensagem para {usuario}: {e}")
 
     def iniciar_chat(self):
         """Método para iniciar o chat"""
@@ -205,6 +221,9 @@ class ChatP2P:
         print("Sincronização concluída. Iniciando o chat.")
 
         self.sincronizar_com_usuario(usuario_sincronizacao)
+
+        # Envie mensagens pendentes apenas para o usuário selecionado
+        self.enviar_mensagens_armazenadas_para_usuario(usuario_sincronizacao)
 
         # Iniciar a thread de recebimento de mensagens
         thread_recebimento = threading.Thread(target=self.receber_mensagens)
