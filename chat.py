@@ -57,7 +57,7 @@ class ChatP2P:
         """Método para sincronizar com um usuário específico"""
         mensagem_solicitacao = json.dumps({'tipo': 'SOLICITACAO_HISTORICO', 'id': str(self.id)})
         self.sock_envio.sendto(mensagem_solicitacao.encode('utf-8'), (usuario_sincronizacao, self.porta))
-        print("Solicitação de histórico enviada.")
+        print("Solicitação de histórico enviada para", usuario_sincronizacao)
 
         # Aguardar pelo histórico de mensagens
         start_time = time.time()
@@ -69,7 +69,8 @@ class ChatP2P:
                 break
             time.sleep(0.1)
         else:
-            print("Timeout ao aguardar pelo histórico de mensagens.")
+            print("Timeout ao aguardar pelo histórico de mensagens para", usuario_sincronizacao)
+
 
     def enviar_historico_mensagens(self, endereco, mensagem):
         """Envia o histórico de mensagens para o endereço especificado"""
