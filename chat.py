@@ -34,9 +34,15 @@ class MensagemStorage:
         else:
             self.historico_mensagens[usuario] = [mensagem]
 
-    def obter_historico_mensagens(self, usuario):
-        """Retorna o histórico de mensagens de um usuário"""
+    def obter_mensagens_pendentes(self, usuario):
+        """Retorna as mensagens pendentes para um usuário"""
         return self.historico_mensagens.get(usuario, [])
+
+    def limpar_mensagens(self, usuario):
+        """Limpa as mensagens pendentes para um usuário"""
+        if usuario in self.historico_mensagens:
+            del self.historico_mensagens[usuario]
+
 
 class ChatP2P:
     def __init__(self):
@@ -149,8 +155,24 @@ class ChatP2P:
         else:
             print("Mensagem vazia. Nada foi enviado.")
 
+    def enviar_mensagens_armazenadas_para_usuario(self, usuario):
+        """Envia as mensagens armazenadas para um usuário específico"""
+        mensagens_pendentes = self.storage.obter_mensagens_pendentes(usuario)
+        for mensagem in mensagens_pendentes:
+            mensagem_json = json.dumps(mensagem)  # Converta cada mensagem em JSON
+            try:
+                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+            except Exception as e:
+                print(f"Erro ao enviar mensagem para {usuario}: {e}")
+
+
     def iniciar_chat(self):
         """Método para iniciar o chat"""
+        # Sincronização de 15 segundos ao iniciar o chat
+        print("Sincronizando...")
+        time.sleep(15)
+        print("Sincronização concluída. Iniciando o chat.")
+
         # Envie mensagens pendentes para novos membros ao se conectar
         for usuario in self.usuarios:
             self.enviar_mensagens_armazenadas_para_usuario(usuario)
@@ -162,6 +184,7 @@ class ChatP2P:
         while True:
             mensagem = input()
             self.enviar_mensagem(mensagem)
+
 
 # Iniciar o chat
 chat = ChatP2P()
