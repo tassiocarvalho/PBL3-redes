@@ -87,14 +87,15 @@ class ChatP2P:
     def enviar_historico_mensagens(self, endereco, mensagem):
         """Envia o histórico de mensagens para o endereço especificado"""
         usuario = endereco[0]
-        historico_mensagens = self.storage.obter_historico_mensagens(usuario)
-        mensagem_historico = {'tipo': 'HISTORICO', 'historico': historico_mensagens}
+        historico_mensagens = self.storage.historico_mensagens  # Obter todo o histórico de mensagens
+        mensagem_historico = {'tipo': 'HISTORICO', 'historico': historico_mensagens.get(usuario, [])}
         mensagem_json = json.dumps(mensagem_historico)
         try:
             self.sock_envio.sendto(mensagem_json.encode('utf-8'), endereco)
             print("Histórico de mensagens enviado para", endereco)
         except Exception as e:
             print(f"Erro ao enviar histórico de mensagens para {endereco}: {e}")
+
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
