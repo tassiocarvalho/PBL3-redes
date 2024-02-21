@@ -84,15 +84,17 @@ class ChatP2P:
         except Exception as e:
             print(f"Erro ao enviar histórico de mensagens para {endereco}: {e}")
 
-    def enviar_mensagens_armazenadas_para_usuario(self, usuario):
-        """Envia as mensagens armazenadas para um usuário específico"""
+    def enviar_historico_mensagens(self, endereco, mensagem):
+        """Envia o histórico de mensagens para o endereço especificado"""
+        usuario = endereco[0]
         historico_mensagens = self.storage.obter_historico_mensagens(usuario)
-        for mensagem in historico_mensagens:
-            mensagem_json = json.dumps(mensagem)  # Converta cada mensagem em JSON
-            try:
-                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-            except Exception as e:
-                print(f"Erro ao enviar mensagem para {usuario}: {e}")
+        mensagem_historico = {'tipo': 'HISTORICO', 'historico': historico_mensagens}
+        mensagem_json = json.dumps(mensagem_historico)
+        try:
+            self.sock_envio.sendto(mensagem_json.encode('utf-8'), endereco)
+            print("Histórico de mensagens enviado para", endereco)
+        except Exception as e:
+            print(f"Erro ao enviar histórico de mensagens para {endereco}: {e}")
 
     def clear_screen(self):
         """Função para limpar a tela de forma multiplataforma"""
