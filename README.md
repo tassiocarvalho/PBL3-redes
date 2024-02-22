@@ -80,10 +80,6 @@ Certifique-se de ter o Docker instalado em sua máquina antes de prosseguir.
 
 2. Navegue até o diretório onde o repositório foi clonado:
 
-   ```bash
-   cd chat-p2p
-   ```
-
 3. Agora, crie a build do chat P2P usando o Docker:
 
    ```bash
