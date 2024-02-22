@@ -122,6 +122,13 @@ class ChatP2P:
                 return True
         return False
 
+    def salvar_historico_mensagens(self):
+        """Salva o histórico de mensagens em um arquivo de texto"""
+        with open("historico_mensagens.txt", "w") as file:
+            for endereco, mensagem in self.mensagens_recebidas:
+                file.write(f"{endereco}: {mensagem}\n")
+        print("Histórico de mensagens salvo em 'historico_mensagens.txt'.")
+
     def receber_mensagens(self):
         """Função para receber mensagens"""
         while True:
@@ -188,6 +195,8 @@ class ChatP2P:
                             self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
                         except Exception as e:
                             print(f"Erro ao enviar mensagem para {usuario}: {e}")
+            elif mensagem.strip() == "/salvar":  # Verifica se o comando é "/salvar"
+                self.salvar_historico_mensagens()  # Chama o método para salvar o histórico de mensagens
             else:
                 mensagem_id = str(uuid.uuid4())
                 mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Incluir o tempo do relógio de Lamport na mensagem
