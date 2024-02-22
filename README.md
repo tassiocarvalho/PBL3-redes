@@ -25,8 +25,26 @@ O projeto ChatP2P é uma aplicação de bate-papo peer-to-peer (P2P) que permite
 - As mensagens são recebidas pelos destinatários e exibidas na tela.
 
 ### Acknowledgment (ACK)
-- Após receber uma mensagem, o destinatário envia um ACK de volta para o remetente para confirmar o recebimento da mensagem.
-- O remetente aguarda um ACK antes de considerar a mensagem entregue com sucesso.
+
+## Acknowledgment (ACK) e sua confiabilidade no Chat P2P
+
+No chat ponto a ponto (P2P), o Acknowledgment (ACK) desempenha um papel crucial na garantia da confiabilidade da comunicação entre os nós da rede. O ACK é um tipo de mensagem de confirmação enviada por um receptor para o remetente, indicando que uma mensagem foi recebida com sucesso.
+
+# Importância do ACK no Chat P2P:
+
+1. **Confirmação de Recebimento:**
+   Quando um nó envia uma mensagem para outro nó no chat P2P, ele aguarda a recepção de um ACK do nó de destino. Isso confirma que a mensagem foi recebida e pode ser considerada entregue com segurança.
+
+2. **Detecção de Perda de Mensagem:**
+   Se o remetente não receber um ACK dentro de um intervalo de tempo especificado, ele assume que a mensagem foi perdida no caminho. Isso desencadeia a retransmissão da mensagem para garantir que ela seja entregue ao destinatário.
+
+3. **Garantia de Ordem de Mensagens:**
+   O uso do ACK também ajuda a garantir a ordem correta das mensagens. O remetente só envia a próxima mensagem após receber o ACK da mensagem anterior, garantindo assim que as mensagens sejam exibidas na ordem correta no chat.
+
+4. **Sincronização de Estado:**
+   O ACK pode ser usado para sincronizar o estado entre os nós do chat P2P. Por exemplo, um ACK pode conter informações sobre o número de mensagens recebidas, permitindo que os nós mantenham um histórico atualizado das conversas.
+
+Em resumo, o ACK é uma peça fundamental na arquitetura de um chat P2P, garantindo que as mensagens sejam entregues com segurança, na ordem correta e sem perdas.
 
 ### Armazenamento de Mensagens
 - O histórico de mensagens de cada usuário é armazenado localmente.
