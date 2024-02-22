@@ -3,6 +3,22 @@
 ## Introdução
 O projeto ChatP2P é uma aplicação de bate-papo peer-to-peer (P2P) que permite a troca de mensagens entre diferentes usuários em uma rede local. Neste relatório, vamos examinar detalhadamente a implementação do projeto, discutindo suas funcionalidades, arquitetura e componentes principais.
 
+## Funcionamento do Chat P2P
+
+### Envio de Mensagens para Todos os Membros da Lista de IPs
+
+- O chat P2P envia mensagens para todos os membros da lista de IPs especificados no código. Isso permite que cada membro receba as mensagens enviadas por outros membros em tempo real.
+
+### Uso do Relógio de Lamport para Ordenação
+
+- Para garantir a ordenação correta das mensagens, o chat P2P utiliza o Relógio de Lamport. Este relógio lógico é uma ferramenta essencial para sincronizar eventos em um ambiente distribuído, como o chat P2P. Ele é utilizado para marcar cada mensagem com um carimbo de tempo, permitindo que os nós recebam e exibam as mensagens na ordem correta, mesmo que elas tenham sido enviadas em momentos diferentes.
+
+### Utilização do ACK para Confirmação de Recebimento
+
+- O chat P2P faz uso do ACK (Acknowledgment) para garantir a confiabilidade da comunicação. Após receber uma mensagem, um nó envia um ACK de volta para o remetente, confirmando que a mensagem foi recebida com sucesso. Isso garante que as mensagens sejam entregues de forma segura e que o remetente tenha conhecimento do recebimento por parte do destinatário.
+
+Com essa combinação de envio de mensagens para todos os membros da lista de IPs, utilização do Relógio de Lamport para ordenação e uso do ACK para confirmação de recebimento, o chat P2P proporciona uma experiência de comunicação confiável e em tempo real entre os membros da rede.
+
 ## Componentes Principais
 
 ### 1. Classe `MensagemStorage`
@@ -15,16 +31,11 @@ O projeto ChatP2P é uma aplicação de bate-papo peer-to-peer (P2P) que permite
 - Implementa um mecanismo de ACK (acknowledgment) para garantir a entrega das mensagens.
 - Utiliza o relógio de Lamport para ordenar as mensagens.
 
-### 3. Classe `RelogioLamport`
-- Implementa o algoritmo do relógio de Lamport, que é usado para ordenar eventos em um sistema distribuído.
-
 ## Funcionalidades Principais
 
 ### Envio e Recebimento de Mensagens
 - Os usuários podem enviar mensagens para outros usuários conectados.
 - As mensagens são recebidas pelos destinatários e exibidas na tela.
-
-### Acknowledgment (ACK)
 
 ## Acknowledgment (ACK) e sua confiabilidade no Chat P2P
 
