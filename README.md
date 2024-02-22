@@ -1,4 +1,4 @@
-# Relatório do Projeto ChatP2P
+# Projeto ChatP2P ZapsZaps
 
 ## Introdução
 O projeto ChatP2P é uma aplicação de bate-papo peer-to-peer (P2P) que permite a troca de mensagens entre diferentes usuários em uma rede local. Neste relatório, vamos examinar detalhadamente a implementação do projeto, discutindo suas funcionalidades, arquitetura e componentes principais.
