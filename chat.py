@@ -183,51 +183,52 @@ class ChatP2P:
 
     def enviar_mensagem(self, mensagem):
         """Função para enviar uma mensagem"""
-        if mensagem.strip():  # Verifica se a mensagem não está vazia
-            if mensagem.strip() == "/10":  # Verifica se a mensagem é o comando "/10"
-                for _ in range(100):
-                    mensagem_aleatoria = random.choice(self.frases_aleatorias)
+        if mensagem.strip() == "/salvar":  # Verifica se o comando é "/salvar"
+            self.salvar_historico_mensagens()  # Chama o método para salvar o histórico de mensagens
+        else:
+            if mensagem.strip():  # Verifica se a mensagem não está vazia
+                if mensagem.strip() == "/10":  # Verifica se a mensagem é o comando "/10"
+                    for _ in range(100):
+                        mensagem_aleatoria = random.choice(self.frases_aleatorias)
+                        mensagem_id = str(uuid.uuid4())
+                        mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem_aleatoria, 'relogio_lamport': self.relogio_lamport.obter_tempo()})
+                        self.relogio_lamport.incrementar()
+                        for usuario in self.usuarios:
+                            try:
+                                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                            except Exception as e:
+                                print(f"Erro ao enviar mensagem para {usuario}: {e}")
+                else:
                     mensagem_id = str(uuid.uuid4())
-                    mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem_aleatoria, 'relogio_lamport': self.relogio_lamport.obter_tempo()})
-                    self.relogio_lamport.incrementar()
+                    mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Incluir o tempo do relógio de Lamport na mensagem
+                    self.relogio_lamport.incrementar()  # Incrementar o relógio de Lamport antes de enviar a mensagem
                     for usuario in self.usuarios:
                         try:
                             self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
                         except Exception as e:
                             print(f"Erro ao enviar mensagem para {usuario}: {e}")
-            elif mensagem.strip() == "/salvar":  # Verifica se o comando é "/salvar"
-                self.salvar_historico_mensagens()  # Chama o método para salvar o histórico de mensagens
-            else:
-                mensagem_id = str(uuid.uuid4())
-                mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Incluir o tempo do relógio de Lamport na mensagem
-                self.relogio_lamport.incrementar()  # Incrementar o relógio de Lamport antes de enviar a mensagem
-                for usuario in self.usuarios:
-                    try:
-                        self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-                    except Exception as e:
-                        print(f"Erro ao enviar mensagem para {usuario}: {e}")
-            
-            # Aguardar pelo ACK
-            start_time = time.time()
-            while time.time() - start_time < self.ack_timeout:
-                if not self.mensagem_enviada_pendente(mensagem_id):
-                    break
-                time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
-            else:
-                print(f"Timeout ao aguardar pelo ACK da mensagem {mensagem_id}. Retransmitindo...")
-
-                # Retransmitir mensagem
-                while time.time() - start_time < self.ack_timeout + self.retransmitir_timeout:
-                    for usuario in self.usuarios:
-                        try:
-                            self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-                        except Exception as e:
-                            print(f"Erro ao retransmitir mensagem para {usuario}: {e}")
-                    time.sleep(0.1)  # Esperar um pouco antes de retransmitir
+                
+                # Aguardar pelo ACK
+                start_time = time.time()
+                while time.time() - start_time < self.ack_timeout:
+                    if not self.mensagem_enviada_pendente(mensagem_id):
+                        break
+                    time.sleep(0.1)  # Esperar um pouco antes de verificar novamente
                 else:
-                    print(f"Timeout de retransmissão alcançado para a mensagem {mensagem_id}. Mensagem perdida.")
-        else:
-            print("Mensagem vazia. Nada foi enviado.")
+                    print(f"Timeout ao aguardar pelo ACK da mensagem {mensagem_id}. Retransmitindo...")
+
+                    # Retransmitir mensagem
+                    while time.time() - start_time < self.ack_timeout + self.retransmitir_timeout:
+                        for usuario in self.usuarios:
+                            try:
+                                self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                            except Exception as e:
+                                print(f"Erro ao retransmitir mensagem para {usuario}: {e}")
+                        time.sleep(0.1)  # Esperar um pouco antes de retransmitir
+                    else:
+                        print(f"Timeout de retransmissão alcançado para a mensagem {mensagem_id}. Mensagem perdida.")
+            else:
+                print("Mensagem vazia. Nada foi enviado.")
 
 
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
