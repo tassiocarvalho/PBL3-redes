@@ -64,9 +64,43 @@ Em resumo, o ACK é uma peça fundamental na arquitetura de um chat P2P, garanti
 ### Relógio de Lamport
 - O relógio de Lamport é utilizado para registrar o tempo dos eventos e garantir a ordenação correta das mensagens.
 
-## Execução do Projeto
-- O projeto pode ser executado diretamente a partir do código fornecido.
-- Os usuários podem iniciar o chat e começar a enviar mensagens imediatamente.
+## Criando e Executando a Build do Chat P2P
+
+### Pré-requisitos
+
+Certifique-se de ter o Docker instalado em sua máquina antes de prosseguir.
+
+### Criando a Build
+
+1. Clone o repositório do Chat P2P em sua máquina local:
+
+   ```bash
+   git clone <https://github.com/tassiocarvalho/PBL3-redes.git>
+   ```
+
+2. Navegue até o diretório onde o repositório foi clonado:
+
+   ```bash
+   cd chat-p2p
+   ```
+
+3. Agora, crie a build do chat P2P usando o Docker:
+
+   ```bash
+   docker build -t chat .
+   ```
+
+### Executando a Aplicação
+
+1. Após a construção da imagem Docker, execute o seguinte comando para iniciar a aplicação:
+
+   ```bash
+   docker run -it --network host chat
+   ```
+
+2. Agora você está pronto para usar o chat P2P! Siga as instruções fornecidas no console para selecionar um usuário para sincronização e começar a trocar mensagens.
+
+Com esses passos simples, você será capaz de criar e executar o chat P2P em sua máquina usando o Docker.
 
 ## Conclusão
 O projeto ChatP2P oferece uma maneira simples e eficaz de trocar mensagens entre usuários em uma rede local. Com recursos como ACK e armazenamento de mensagens, ele fornece uma experiência de bate-papo confiável e robusta. Além disso, o uso do relógio de Lamport ajuda a manter a ordem das mensagens, garantindo uma comunicação precisa entre os usuários.
