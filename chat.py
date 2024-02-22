@@ -5,6 +5,7 @@ import platform
 import json
 import uuid
 import time
+import random 
 from relogiolamport import RelogioLamport  # Importando a classe RelogioLamport
 
 def get_local_ip_address():
@@ -55,6 +56,14 @@ class ChatP2P:
         self.retransmitir_timeout = 2  # Tempo limite para retransmitir uma mensagem não confirmada
         self.storage = MensagemStorage()
         self.relogio_lamport = RelogioLamport()  # Criando uma instância do RelogioLamport
+    
+    frases_aleatorias = [
+        "A vida é uma jornada, não um destino.",
+        "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+        "Se você quer algo que nunca teve, precisa fazer algo que nunca fez.",
+        "A persistência é o caminho do êxito.",
+        "Quanto maior o obstáculo, mais glória em superá-lo."
+    ]
 
     def sincronizar_com_usuario(self, usuario_sincronizacao):
         """Método para sincronizar com um usuário específico"""
@@ -168,14 +177,26 @@ class ChatP2P:
     def enviar_mensagem(self, mensagem):
         """Função para enviar uma mensagem"""
         if mensagem.strip():  # Verifica se a mensagem não está vazia
-            mensagem_id = str(uuid.uuid4())
-            mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Incluir o tempo do relógio de Lamport na mensagem
-            self.relogio_lamport.incrementar()  # Incrementar o relógio de Lamport antes de enviar a mensagem
-            for usuario in self.usuarios:
-                try:
-                    self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
-                except Exception as e:
-                    print(f"Erro ao enviar mensagem para {usuario}: {e}")
+            if mensagem.strip() == "/10":  # Verifica se a mensagem é o comando "/10"
+                for _ in range(100):
+                    mensagem_aleatoria = random.choice(self.frases_aleatorias)
+                    mensagem_id = str(uuid.uuid4())
+                    mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem_aleatoria, 'relogio_lamport': self.relogio_lamport.obter_tempo()})
+                    self.relogio_lamport.incrementar()
+                    for usuario in self.usuarios:
+                        try:
+                            self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                        except Exception as e:
+                            print(f"Erro ao enviar mensagem para {usuario}: {e}")
+            else:
+                mensagem_id = str(uuid.uuid4())
+                mensagem_json = json.dumps({'id': mensagem_id, 'mensagem': mensagem, 'relogio_lamport': self.relogio_lamport.obter_tempo()})  # Incluir o tempo do relógio de Lamport na mensagem
+                self.relogio_lamport.incrementar()  # Incrementar o relógio de Lamport antes de enviar a mensagem
+                for usuario in self.usuarios:
+                    try:
+                        self.sock_envio.sendto(mensagem_json.encode('utf-8'), (usuario, self.porta))
+                    except Exception as e:
+                        print(f"Erro ao enviar mensagem para {usuario}: {e}")
             
             # Aguardar pelo ACK
             start_time = time.time()
@@ -198,6 +219,7 @@ class ChatP2P:
                     print(f"Timeout de retransmissão alcançado para a mensagem {mensagem_id}. Mensagem perdida.")
         else:
             print("Mensagem vazia. Nada foi enviado.")
+
 
     def enviar_mensagens_armazenadas_para_usuario(self, usuario):
         """Envia as mensagens armazenadas para um usuário específico"""
