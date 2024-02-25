@@ -75,7 +75,7 @@ Certifique-se de ter o Docker instalado em sua máquina antes de prosseguir.
 1. Clone o repositório do Chat P2P em sua máquina local:
 
    ```bash
-   git clone <https://github.com/tassiocarvalho/PBL3-redes.git>
+   git clone https://github.com/tassiocarvalho/PBL3-redes.git
    ```
 
 2. Navegue até o diretório onde o repositório foi clonado:
@@ -94,9 +94,25 @@ Certifique-se de ter o Docker instalado em sua máquina antes de prosseguir.
    docker run -it --network host chat
    ```
 
-2. Agora você está pronto para usar o chat P2P! Siga as instruções fornecidas no console para selecionar um usuário para sincronização e começar a trocar mensagens.
+##Problema:
+Ao realizar um teste com 7 dispositivos conectados e enviando 100 mensagens em cada dispositivo, observei divergências nos arquivos de texto gerados para cada dispositivo. Isso ocorreu devido à falta de garantia na ordem das mensagens enviadas e recebidas.
 
-Com esses passos simples, você será capaz de criar e executar o chat P2P em sua máquina usando o Docker.
+**Explicação:**
+1. **Envio de Mensagens:**
+   - O código não espera pela confirmação (ACK) de cada usuário antes de enviar a próxima mensagem, o que pode resultar em ordens inconsistentes de mensagens nos diferentes dispositivos.
+
+2. **Retransmissão de Mensagens Perdidas:**
+   - Quando uma mensagem não é confirmada dentro do tempo limite, o código a retransmite. No entanto, isso pode causar a duplicação de mensagens em casos de retransmissão bem-sucedida após a mensagem original ter sido recebida.
+
+3. **Sincronização com Relógio de Lamport:**
+   - Embora o código inclua a sincronização com o relógio de Lamport, a ordem das mensagens pode não ser garantida, especialmente ao lidar com mensagens de diferentes remetentes.
+
+4. **Armazenamento de Mensagens Recebidas:**
+   - As mensagens recebidas são armazenadas em uma lista, porém não necessariamente em ordem cronológica. Isso pode resultar em diferenças entre os históricos de mensagens salvos em diferentes dispositivos.
+
+**Solução Proposta:**
+Para resolver esse problema, é recomendável implementar uma lógica mais robusta para garantir a ordem correta das mensagens, talvez utilizando um protocolo de controle de fluxo e sequenciamento. Além disso, sincronizar adequadamente os relógios de Lamport entre os dispositivos e garantir que as mensagens sejam armazenadas e exibidas na ordem correta são passos importantes para garantir a consistência nos históricos de mensagens.
+
 
 ## Conclusão
 O projeto ChatP2P oferece uma maneira simples e eficaz de trocar mensagens entre usuários em uma rede local. Com recursos como ACK e armazenamento de mensagens, ele fornece uma experiência de bate-papo confiável. Além disso, o uso do relógio de Lamport ajuda a manter a ordem das mensagens, garantindo uma comunicação precisa entre os usuários. No entanto, para uma melhor experiência, o projeto pode se beneficiar de algumas melhorias, como uma interface de usuário mais amigável e uma gestão mais robusta de conexões e erros de rede. Essas melhorias podem tornar o ChatP2P ainda mais acessível e confiável para os usuários.
