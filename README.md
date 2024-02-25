@@ -94,7 +94,8 @@ Certifique-se de ter o Docker instalado em sua máquina antes de prosseguir.
    docker run -it --network host chat
    ```
 
-##Problema:
+### Problema encontrado em teste com o professor no laborátorio 
+
 Ao realizar um teste com 7 dispositivos conectados e enviando 100 mensagens em cada dispositivo, observei divergências nos arquivos de texto gerados para cada dispositivo. Isso ocorreu devido à falta de garantia na ordem das mensagens enviadas e recebidas.
 
 **Explicação:**
